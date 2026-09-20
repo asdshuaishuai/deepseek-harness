@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Hold a spoken conversation over a durable Agent: server VAD finalizes each utterance into a transcript, every transcript becomes an agent task executed by the configured main model, and the turn's final assistant text is spoken back through the same realtime session. Barge-in cancels the spoken response while the agent turn runs to completion. Pass `sessionId` to resume; the durable session log keeps every voice-originated turn.
+Hold a spoken conversation over a durable Agent: server VAD finalizes each utterance into a transcript, every transcript becomes an agent task executed by the configured main model, and the turn's final assistant text is spoken back through the same realtime session. While the agent works, the voice model briefly confirms the accepted task (Codex-style; `acknowledge: false` silences it, a string replaces the line). Barge-in cancels the spoken response while the agent turn runs to completion. Pass `sessionId` to resume; the durable session log keeps every voice-originated turn.
 
 ## Table of Contents
 

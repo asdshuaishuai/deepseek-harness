@@ -28,7 +28,15 @@ export interface SessionConfig {
   /** Output audio container; this client consumes `pcm16`. */
   output_audio_format?: 'pcm16'
   /** Server-side voice-activity detection over the appended input buffer. */
-  turn_detection?: { type: 'server_vad' } | null
+  turn_detection?: {
+    type: 'server_vad'
+    /** Backtrack over speech onset (ms); the platform default is 500. */
+    prefix_padding_ms?: number
+    /** Silence that closes an utterance (ms); the platform default is 100. */
+    silence_duration_ms?: number
+    /** Energy wake threshold, 0–5000; the platform default is 2500. */
+    energy_awakeness_threshold?: number
+  } | null
   /** Sampling rate of input audio in Hz. */
   input_audio_transcription?: { model?: string } | null
 }
@@ -98,15 +106,23 @@ export interface SpeechStoppedEvent {
   audio_end_ms: number
 }
 
-/** Server → client: finalized transcript of one user utterance. */
+/**
+ * Server → client: finalized transcript of one user utterance. The platform
+ * has shipped both spellings — `transcript` and `transcription` — so the
+ * session accepts either and reports the same callback.
+ */
 export interface InputTranscriptCompletedEvent {
-  type: 'conversation.item.input_audio_transcript.completed'
+  type:
+    | 'conversation.item.input_audio_transcript.completed'
+    | 'conversation.item.input_audio_transcription.completed'
   transcript: string
 }
 
 /** Server → client: the user utterance could not be transcribed. */
 export interface InputTranscriptFailedEvent {
-  type: 'conversation.item.input_audio_transcript.failed'
+  type:
+    | 'conversation.item.input_audio_transcript.failed'
+    | 'conversation.item.input_audio_transcription.failed'
   error: RealtimeErrorPayload
 }
 

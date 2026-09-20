@@ -52,7 +52,10 @@ async function run(ctx: Context, startup: VoiceStartupValues, exit: (code: numbe
   if (voiceAgent === undefined) throw new Error('voice-runner: the voiceAgent service is required')
 
   const conversation = await voiceAgent.createConversation(
-    { ...startup.sessionId === undefined ? {} : { sessionId: startup.sessionId } },
+    {
+      ...startup.sessionId === undefined ? {} : { sessionId: startup.sessionId },
+      ...startup.ack === undefined ? {} : { realtime: { acknowledge: startup.ack } },
+    },
     bridgeEvents((chunk) => { process.stdout.write(chunk) }),
   )
   // Captions mirror to stderr so the driver process keeps stdout a clean JSON

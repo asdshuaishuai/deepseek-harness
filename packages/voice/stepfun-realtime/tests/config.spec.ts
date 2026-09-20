@@ -26,10 +26,12 @@ describe('resolveRealtimeOptions', () => {
     expect(resolved.connectTimeoutMs).toBe(10_000)
   })
 
-  it('switches the endpoint to the Step Plan channel', () => {
+  it('switches the endpoint and default model to the Step Plan channel', () => {
     const resolved = resolveRealtimeOptions({ channel: 'step-plan' })
     expect(resolved.baseURL).toBe(STEP_PLAN_REALTIME_URL)
-    expect(resolved.model).toBe('stepaudio-3-realtime-preview')
+    // The plan does not list StepAudio 3 Realtime yet, so the plan channel
+    // defaults to the subscription's StepAudio 2.5 Realtime.
+    expect(resolved.model).toBe('stepaudio-2.5-realtime')
   })
 
   it('rejects an unknown channel and an empty model', () => {

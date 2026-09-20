@@ -2719,14 +2719,22 @@ export interface Config {
    */
   baseURL?: string
   /**
-   * Realtime model id sent as `?model=`; defaults to
-   * $STEPFUN_REALTIME_MODEL, then `stepaudio-3-realtime-preview`.
+   * Realtime model id sent as `?model=`; defaults to $STEPFUN_REALTIME_MODEL,
+   * then the channel's model: `stepaudio-3-realtime-preview` on the standard
+   * channel, `stepaudio-2.5-realtime` under a Step Plan subscription (the
+   * plan does not list StepAudio 3 Realtime yet).
    */
   model?: string
   /** Voice the model speaks with; the platform default applies when omitted. */
   voice?: string
   /** System instructions for the voice model's own turns. */
   instructions?: string
+  /** Backtrack over speech onset in ms (server VAD); the platform default is 500. */
+  vadPrefixPaddingMs?: number
+  /** Silence that closes an utterance in ms (server VAD); the platform default is 100. */
+  vadSilenceDurationMs?: number
+  /** Energy wake threshold 0–5000 (server VAD); the platform default is 2500. */
+  vadEnergyThreshold?: number
   /** Ceiling on the open handshake (`session.created`) wait (default ten seconds). */
   connectTimeoutMs?: number
 }
@@ -2738,7 +2746,7 @@ export interface Config {
 export type StepFunChannel = 'standard' | 'step-plan'
 ```
 
-来源：[`packages/voice/stepfun-realtime/src/index.ts:65`](../packages/voice/stepfun-realtime/src/index.ts)
+来源：[`packages/voice/stepfun-realtime/src/index.ts:72`](../packages/voice/stepfun-realtime/src/index.ts)
 
 <a id="deepseek-aidsh-storage-domain"></a>
 
@@ -3724,6 +3732,12 @@ export interface Config {
   voice?: string
   /** System instructions for the voice model's own turns. */
   instructions?: string
+  /**
+   * Codex-style task acknowledgement: the voice model briefly confirms an
+   * accepted task while the agent (step-5) works. `false` disables it; a
+   * string replaces the default line. Absent = the default line.
+   */
+  acknowledge?: string | false
 }
 ```
 

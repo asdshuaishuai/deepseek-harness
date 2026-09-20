@@ -1,5 +1,5 @@
 ---
-description: "The StepAudio 3 Realtime duplex voice WebSocket client (standard and Step Plan channels, stepaudio-3-realtime-preview) with public-endpoint validation and an injectable transport."
+description: "The StepAudio Realtime duplex voice WebSocket client (standard channel: stepaudio-3-realtime-preview; Step Plan: stepaudio-2.5-realtime) with public-endpoint validation, VAD tuning, and an injectable transport."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Open one duplex voice session against StepFun's realtime WebSocket: server-side VAD finalizes utterances into transcripts, spoken answers return as PCM16 audio frames, and the event vocabulary arrives as typed callbacks. Pick the standard channel or the Step Plan subscription endpoint through config; both speak `stepaudio-3-realtime-preview`, overridable by `model`. Conversation policy — pairing voice turns with an agent — belongs to consumers such as `dsh-voice-agent`.
+Open one duplex voice session against StepFun's realtime WebSocket: server-side VAD finalizes utterances into transcripts, spoken answers return as PCM16 audio frames, and the event vocabulary arrives as typed callbacks. Pick the standard channel or the Step Plan subscription endpoint through config; the model defaults per channel — `stepaudio-3-realtime-preview` on the standard channel, `stepaudio-2.5-realtime` under a Step Plan subscription (the plan does not list StepAudio 3 Realtime yet) — overridable by `model` or `$STEPFUN_REALTIME_MODEL`. Conversation policy — pairing voice turns with an agent — belongs to consumers such as `dsh-voice-agent`.
 
 ## Table of Contents
 
@@ -41,7 +41,7 @@ Choose it when a composition needs the raw realtime session — transcribe speec
 | `channel` | `standard` | `standard` (`wss://api.stepfun.com/v1/realtime`) or `step-plan` (`wss://api.stepfun.com/step_plan/v1/realtime`) |
 | `apiKeyEnv` | `STEPFUN_API_KEY` | Credential reference resolved per session |
 | `baseURL` | channel endpoint, or `$STEPFUN_REALTIME_URL` | WS(S) root; validated as a public endpoint before any connection |
-| `model` | `stepaudio-3-realtime-preview`, or `$STEPFUN_REALTIME_MODEL` | Realtime model id sent as `?model=` |
+| `model` | `$STEPFUN_REALTIME_MODEL`, else the channel default | Realtime model id sent as `?model=`; `stepaudio-3-realtime-preview` on the standard channel, `stepaudio-2.5-realtime` under Step Plan |
 | `voice` | platform default | Voice the model speaks with |
 | `connectTimeoutMs` | `10000` | Ceiling on the `session.created` handshake |
 
@@ -88,6 +88,7 @@ None for agent requests; realtime turns are a separate provider session with its
 <a id="known-limitations-and-deferred-work"></a>
 
 - `stepaudio-3-realtime-preview` is the free-preview model id; the platform replaces the name when the paid version ships — override with `model` or `$STEPFUN_REALTIME_MODEL` then.
+- **The Step Plan channel does not list StepAudio 3 Realtime yet** — its catalog carries `stepaudio-2.5-realtime`, which is the plan-channel default; speaking StepAudio 3 Realtime there requires the open-platform channel.
 - The session is transport-only: no transcript persistence, queueing, or agent pairing lives here.
 
 These limits define current package constraints, not a task backlog.

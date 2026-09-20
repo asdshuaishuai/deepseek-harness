@@ -15,6 +15,7 @@ import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelectionRef } from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-agent-default-model'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -48,7 +49,17 @@ export interface VoiceConversationDeps {
   /** Exact Session identity to adopt; a fresh random identity when omitted. */
   sessionId?: string
   /** Voice-model overrides for this conversation. */
-  realtime: { voice?: string; instructions?: string }
+  realtime: {
+    voice?: string
+    instructions?: string
+    /**
+     * Codex-style task acknowledgement: when a transcript is accepted while
+     * the speaker is idle, the voice model briefly confirms the task before
+     * the agent's answer is due. `false` disables the acknowledgement; a
+     * string replaces the default line.
+     */
+    acknowledge?: string | false
+  }
 }
 
 /**
@@ -58,6 +69,22 @@ export interface VoiceConversationDeps {
  * perception while costing nothing measurable.
  */
 const DRAIN_POLL_MS = 150
+
+/** Default Codex-style acknowledgement spoken when a task is accepted. */
+export const DEFAULT_ACKNOWLEDGEMENT = '好的，我开始处理，请稍等。'
+
+/** One-shot delivery instructions carried by the acknowledgement. */
+export const ACKNOWLEDGEMENT_INSTRUCTIONS =
+  '只需简短确认收到任务并开始处理，不要回答任务内容；语气自然，一句话说完。'
+
+/** One item waiting for the speaker. */
+interface SpeechItem {
+  text: string
+  /** Why this item exists; the drain loop sets the follow-up phase from it. */
+  kind: 'ack' | 'answer'
+  /** Optional one-shot delivery instructions. */
+  instructions?: string
+}
 
 /**
  * The live conversation. Exactly one realtime session and one Agent; the
@@ -74,17 +101,28 @@ export class VoiceConversation {
   private turnText = ''
   /** A turn-finished text waiting to be spoken; `undefined` when none. */
   private pendingAnswer: string | undefined
+  /** Speech items waiting for the speaker, in acceptance order. */
+  private readonly speechQueue: SpeechItem[] = []
+  /** The acknowledgement line, or `undefined` when disabled. */
+  private readonly acknowledgement: string | undefined
   private draining = false
   /** Resolves the in-flight {@link speakAndWait}; barge-in and done share it. */
   private speechDone: (() => void) | undefined
   private closed = false
   private readonly disposers: (() => void)[] = []
 
-  private constructor(agent: Agent, session: RealtimeSession, ctx: Context, events: VoiceConversationEvents) {
+  private constructor(
+    agent: Agent,
+    session: RealtimeSession,
+    ctx: Context,
+    events: VoiceConversationEvents,
+    acknowledgement: string | undefined,
+  ) {
     this.agent = agent
     this.session = session
     this.ctx = ctx
     this.events = events
+    this.acknowledgement = acknowledgement
 
     // Captions and the speakable turn text both come from the assistant
     // stream; the durable session log remains the record of record.
@@ -124,7 +162,11 @@ export class VoiceConversation {
     const { ctx } = deps
     // Loader siblings mount concurrently; await the complete application so
     // the Agent's scoped tools and adapters are not half-composed.
-    await ctx.get('loader')?.await()
+    // The loader is an optional boot capability; the rest are required seams.
+    // Local structural types keep the reads honest regardless of how the
+    // ambient service declarations reach this compilation.
+    const loader = ctx.get('loader') as { await(): Promise<void> } | undefined
+    await loader?.await()
     const agents = ctx.get('agents')
     const defaultModel = ctx.get('agentDefaultModel')
     const sessions = ctx.get('sessions')
@@ -169,7 +211,10 @@ export class VoiceConversation {
         void holder.conversation?.close().catch(() => {})
       },
     })
-    const conversation = new VoiceConversation(agent, session, ctx, events)
+    const acknowledgement = deps.realtime.acknowledge === false
+      ? undefined
+      : deps.realtime.acknowledge ?? DEFAULT_ACKNOWLEDGEMENT
+    const conversation = new VoiceConversation(agent, session, ctx, events, acknowledgement)
     holder.conversation = conversation
     conversation.drain()
     return conversation
@@ -212,6 +257,21 @@ export class VoiceConversation {
     this.events.onUserTranscript?.(transcript)
     if (transcript.trim().length === 0 || this.closed) return
     this.setState('thinking')
+    // Codex-style acknowledgement: confirm the accepted task only while the
+    // speaker has nothing queued or in flight, so busy-queue follow-ups and
+    // post-answer speech never double up against it.
+    if (
+      this.acknowledgement !== undefined
+      && this.speechQueue.length === 0
+      && this.pendingAnswer === undefined
+      && this.speechDone === undefined
+    ) {
+      this.speechQueue.push({
+        text: this.acknowledgement,
+        kind: 'ack',
+        instructions: ACKNOWLEDGEMENT_INSTRUCTIONS,
+      })
+    }
     this.agent.followup(createUserMessage({
       content: [{ type: 'text', text: transcript }],
       source: { kind: 'user' },
@@ -246,6 +306,15 @@ export class VoiceConversation {
     void (async () => {
       try {
         while (!this.closed) {
+          // Queued acknowledgements speak ahead of the parked wait: an ack
+          // accepted while the agent works must not wait for its completion.
+          const queued = this.speechQueue.shift()
+          if (queued !== undefined) {
+            await this.speakAndWait(queued)
+            // The accepted task is still running behind the acknowledgement.
+            this.setState('thinking')
+            continue
+          }
           await this.agent.whenIdle()
           const answer = this.pendingAnswer
           this.pendingAnswer = undefined
@@ -255,7 +324,7 @@ export class VoiceConversation {
             continue
           }
           this.events.onAssistantFinal?.(answer)
-          await this.speakAndWait(answer)
+          await this.speakAndWait({ text: answer, kind: 'answer' })
         }
       } catch (error: unknown) {
         this.events.onError?.(error instanceof Error ? error.message : String(error))
@@ -266,18 +335,18 @@ export class VoiceConversation {
   }
 
   /**
-   * Speak one answer and wait for its spoken response to settle. Barge-in
+   * Speak one queued item and wait for its spoken response to settle. Barge-in
    * cancels the response server-side, which resolves the wait.
    */
-  private async speakAndWait(answer: string): Promise<void> {
+  private async speakAndWait(item: SpeechItem): Promise<void> {
     await new Promise<void>((resolve) => {
       this.speechDone = resolve
       this.setState('speaking')
-      this.session.speak(answer)
+      this.session.speak(item.text, item.instructions)
       // A response that never settles (transport dropped mid-speech) must not
       // wedge the drain loop: the conversation's close() resolves the waiter.
     })
-    this.setState('listening')
+    if (item.kind === 'answer') this.setState('listening')
   }
 
   private setState(state: VoiceState): void {

@@ -35,11 +35,18 @@ export const PUBLIC_REALTIME_URL = 'wss://api.stepfun.com/v1/realtime'
 export const STEP_PLAN_REALTIME_URL = 'wss://api.stepfun.com/step_plan/v1/realtime'
 
 /**
- * The realtime model this service speaks. Both channels accept this id: it is
- * the free-preview name of StepAudio 3 Realtime (the platform replaces it
- * when the paid version ships, so it stays configurable).
+ * The standard-channel default realtime model: the free-preview name of
+ * StepAudio 3 Realtime (the platform replaces it when the paid version
+ * ships, so it stays configurable).
  */
 export const REALTIME_MODEL = 'stepaudio-3-realtime-preview'
+
+/**
+ * The Step Plan channel's default realtime model: the subscription carries
+ * StepAudio 2.5 Realtime and does not list StepAudio 3 Realtime yet, so the
+ * plan endpoint defaults there unless a model is configured explicitly.
+ */
+export const STEP_PLAN_REALTIME_MODEL = 'stepaudio-2.5-realtime'
 
 /**
  * Billing channel selecting the default realtime endpoint: the standard open
@@ -78,14 +85,22 @@ export interface Config {
    */
   baseURL?: string
   /**
-   * Realtime model id sent as `?model=`; defaults to
-   * $STEPFUN_REALTIME_MODEL, then `stepaudio-3-realtime-preview`.
+   * Realtime model id sent as `?model=`; defaults to $STEPFUN_REALTIME_MODEL,
+   * then the channel's model: `stepaudio-3-realtime-preview` on the standard
+   * channel, `stepaudio-2.5-realtime` under a Step Plan subscription (the
+   * plan does not list StepAudio 3 Realtime yet).
    */
   model?: string
   /** Voice the model speaks with; the platform default applies when omitted. */
   voice?: string
   /** System instructions for the voice model's own turns. */
   instructions?: string
+  /** Backtrack over speech onset in ms (server VAD); the platform default is 500. */
+  vadPrefixPaddingMs?: number
+  /** Silence that closes an utterance in ms (server VAD); the platform default is 100. */
+  vadSilenceDurationMs?: number
+  /** Energy wake threshold 0–5000 (server VAD); the platform default is 2500. */
+  vadEnergyThreshold?: number
   /** Ceiling on the open handshake (`session.created`) wait (default ten seconds). */
   connectTimeoutMs?: number
 }
@@ -97,6 +112,9 @@ export const Config: z<Config> = z.object({
   model: z.string(),
   voice: z.string(),
   instructions: z.string(),
+  vadPrefixPaddingMs: z.number().step(1).min(0),
+  vadSilenceDurationMs: z.number().step(1).min(0),
+  vadEnergyThreshold: z.number().step(1).min(0).max(5000),
   connectTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(10_000),
 })
 
@@ -140,7 +158,7 @@ export function resolveRealtimeOptions(
   assertPublicWebSocketUrl(baseURL, 'stepfun-realtime: baseURL')
   const model = config.model
     ?? environment?.get(REALTIME_MODEL_ENV)?.value
-    ?? REALTIME_MODEL
+    ?? (channel === 'step-plan' ? STEP_PLAN_REALTIME_MODEL : REALTIME_MODEL)
   if (model.length === 0) {
     throw new Error('stepfun-realtime: model must be a non-empty realtime model id')
   }
@@ -219,6 +237,11 @@ export function apply(ctx: Context, config: Config): void {
         transport,
         ...config.voice === undefined ? {} : { voice: config.voice },
         ...config.instructions === undefined ? {} : { instructions: config.instructions },
+        turnDetection: {
+          ...config.vadPrefixPaddingMs === undefined ? {} : { prefixPaddingMs: config.vadPrefixPaddingMs },
+          ...config.vadSilenceDurationMs === undefined ? {} : { silenceDurationMs: config.vadSilenceDurationMs },
+          ...config.vadEnergyThreshold === undefined ? {} : { energyThreshold: config.vadEnergyThreshold },
+        },
         // Per-session overrides win over the plugin defaults.
         ...overrides.voice === undefined ? {} : { voice: overrides.voice },
         ...overrides.instructions === undefined ? {} : { instructions: overrides.instructions },

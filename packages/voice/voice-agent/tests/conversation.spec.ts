@@ -24,8 +24,8 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { Session } from '@deepseek-ai/dsh-session'
 import { createInboxStub } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { RealtimeSession } from '@deepseek-ai/dsh-stepfun-realtime'
-import type { RealtimeSessionEvents, RealtimeTransport, RealtimeTransportFactory, ServerEvent } from '@deepseek-ai/dsh-stepfun-realtime'
-import { VoiceConversation } from '../src/conversation.ts'
+import type { ClientEvent, RealtimeSessionEvents, RealtimeTransport, RealtimeTransportFactory, ResponseCreateEvent, ServerEvent } from '@deepseek-ai/dsh-stepfun-realtime'
+import { VoiceConversation, DEFAULT_ACKNOWLEDGEMENT, ACKNOWLEDGEMENT_INSTRUCTIONS } from '../src/conversation.ts'
 import type { VoiceConversationEvents, VoiceState } from '../src/conversation.ts'
 
 /** Transport double shared with the realtime package's own tests. */
@@ -64,8 +64,8 @@ class FakeTransport implements RealtimeTransport {
     this.frameListener(JSON.stringify(event))
   }
 
-  sentEvents(): ReturnType<typeof JSON.parse>[] {
-    return this.sent.map(frame => JSON.parse(frame) as ReturnType<typeof JSON.parse>)
+  sentEvents(): (ServerEvent | ClientEvent)[] {
+    return this.sent.map(frame => JSON.parse(frame) as ServerEvent | ClientEvent)
   }
 }
 
@@ -87,10 +87,14 @@ interface Bench {
   transcripts: () => string[]
   finals: () => string[]
   runTurn(transcript: string, answer: string): Promise<void>
+  /** Deliver one transcript with nothing else — the real acceptance order. */
+  deliverTranscript(transcript: string): void
+  /** Emit one complete text turn from the agent and settle it. */
+  emitAgentTurn(answer: string): void
   session(): Session
 }
 
-async function bench(): Promise<Bench> {
+async function bench(realtime: Record<string, unknown> = {}): Promise<Bench> {
   const ctx = new Context()
   const holder: { agent?: Agent; transport?: FakeTransport; session?: Session } = {}
   const states: VoiceState[] = []
@@ -161,7 +165,7 @@ async function bench(): Promise<Bench> {
     },
   } as never)
 
-  const conversation = await VoiceConversation.start({ ctx, realtime: {} }, {
+  const conversation = await VoiceConversation.start({ ctx, realtime }, {
     onState: (state) => { states.push(state) },
     onUserTranscript: (text) => { transcripts.push(text) },
     onAssistantFinal: (text) => { finals.push(text) },
@@ -176,6 +180,17 @@ async function bench(): Promise<Bench> {
       ? { type: 'chunk', attemptId, revision: 1, index: frameIndex++, time: Date.now(), chunk }
       : { type: 'start', attemptId, revision: 1, turn: 1, step: 1 }
     agent.ctx.emit('agent/assistant-stream', { agent, frame })
+  }
+
+  const emitAgentTurn = (answer: string): void => {
+    const agent = holder.agent
+    if (agent === undefined) throw new Error('bench not ready')
+    idle = (async () => {
+      emit({ type: 'block-start', index: 0, blockType: 'text' })
+      emit({ type: 'text-delta', index: 0, text: answer })
+      agent.ctx.emit('agent/status', { agent, status: 'running' })
+      agent.ctx.emit('agent/status', { agent, status: 'idle' })
+    })()
   }
 
   const runTurn = async (transcript: string, answer: string): Promise<void> => {
@@ -198,6 +213,12 @@ async function bench(): Promise<Bench> {
   return {
     ctx,
     conversation,
+    deliverTranscript: (transcript: string): void => {
+      const transport = holder.transport
+      if (transport === undefined) throw new Error('bench not ready')
+      transport.deliver({ type: 'conversation.item.input_audio_transcript.completed', transcript })
+    },
+    emitAgentTurn,
     agent: () => holder.agent ?? undefined as unknown as Agent,
     transport: () => holder.transport ?? undefined as unknown as FakeTransport,
     states: () => [...states],
@@ -214,7 +235,7 @@ describe('VoiceConversation', () => {
     await bench_.runTurn('list the files', 'six files live here')
     const transport = bench_.transport()
     await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
-    const speak = transport.sentEvents().find(event => event.type === 'response.create')
+    const speak = transport.sentEvents().find((event): event is ResponseCreateEvent => event.type === 'response.create')
     expect(speak).toEqual({
       type: 'response.create',
       response: {
@@ -256,3 +277,75 @@ describe('VoiceConversation', () => {
 
 /** Long enough for one drain poll to pass without a turn. */
 const DRAIN_WAIT = 250
+
+describe('VoiceConversation task acknowledgement', () => {
+  it('speaks a brief acknowledgement before the agent answer in real acceptance order', async () => {
+    const bench_ = await bench()
+    // The real order: the transcript lands first, the agent works, the answer
+    // converges later.
+    bench_.deliverTranscript('fix the failing test')
+    const transport = bench_.transport()
+    await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
+    const ack = transport.sentEvents().find((event): event is ResponseCreateEvent => event.type === 'response.create')
+    expect(ack).toMatchObject({
+      type: 'response.create',
+      response: {
+        modalities: ['text', 'audio'],
+        input: [{ type: 'text', text: DEFAULT_ACKNOWLEDGEMENT }],
+        instructions: ACKNOWLEDGEMENT_INSTRUCTIONS,
+      },
+    })
+    expect(bench_.states()).toContain('speaking')
+    // The acknowledgement settles, the agent keeps working, and the answer
+    // follows in the same speaker queue.
+    transport.deliver({ type: 'response.done' })
+    await waitFor(() => bench_.states().includes('thinking'))
+    bench_.emitAgentTurn('fixed three assertions')
+    await waitFor(() => transport.sentEvents().filter(event => event.type === 'response.create').length >= 2)
+    const answer = transport.sentEvents().filter((event): event is ResponseCreateEvent => event.type === 'response.create')[1]
+    expect(answer).toMatchObject({
+      response: { input: [{ type: 'text', text: 'fixed three assertions' }] },
+    })
+    await waitFor(() => bench_.finals().includes('fixed three assertions'))
+    await bench_.conversation.close()
+  })
+
+  it('does not acknowledge a task accepted while the speaker is busy', async () => {
+    const bench_ = await bench()
+    bench_.deliverTranscript('first task')
+    const transport = bench_.transport()
+    await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
+    // A second transcript lands while the acknowledgement is still speaking:
+    // the speaker is busy, so no second acknowledgement may queue.
+    bench_.deliverTranscript('second task')
+    await new Promise((resolve) => { setTimeout(resolve, DRAIN_WAIT) })
+    const acks = transport.sentEvents().filter((event): event is ResponseCreateEvent => event.type === 'response.create')
+      .filter(event => event.response?.input?.[0]?.text === DEFAULT_ACKNOWLEDGEMENT)
+    expect(acks).toHaveLength(1)
+    await bench_.conversation.close()
+  })
+
+  it('omits the acknowledgement when disabled', async () => {
+    const bench_ = await bench({ acknowledge: false })
+    bench_.deliverTranscript('plain question')
+    bench_.emitAgentTurn('plain answer')
+    await waitFor(() => bench_.finals().includes('plain answer'))
+    const transport = bench_.transport()
+    const creates = transport.sentEvents().filter((event): event is ResponseCreateEvent => event.type === 'response.create')
+    expect(creates).toHaveLength(1)
+    expect(creates[0]).toMatchObject({
+      response: { input: [{ type: 'text', text: 'plain answer' }] },
+    })
+    await bench_.conversation.close()
+  })
+
+  it('speaks a custom acknowledgement line when one is configured', async () => {
+    const bench_ = await bench({ acknowledge: '收到。' })
+    bench_.deliverTranscript('do the thing')
+    const transport = bench_.transport()
+    await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
+    const ack = transport.sentEvents().find((event): event is ResponseCreateEvent => event.type === 'response.create')
+    expect(ack).toMatchObject({ response: { input: [{ type: 'text', text: '收到。' }] } })
+    await bench_.conversation.close()
+  })
+})

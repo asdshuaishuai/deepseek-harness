@@ -46,6 +46,12 @@ export interface RealtimeSessionOptions extends RealtimeConnectOptions {
   voice?: string
   /** System instructions for the voice model's own turns. */
   instructions?: string
+  /** Server VAD tuning; unset fields take the platform defaults. */
+  turnDetection?: {
+    prefixPaddingMs?: number
+    silenceDurationMs?: number
+    energyThreshold?: number
+  }
   /** Ceiling on the open handshake (`session.created`) wait. */
   connectTimeoutMs: number
   /** Transport factory; production uses the global WebSocket client. */
@@ -145,11 +151,17 @@ export class RealtimeSession {
 
   /** The initial configuration: PCM16 both ways, server VAD, spoken turns. */
   private sessionUpdate(): ClientEvent {
+    const vad = this.options.turnDetection
     const session: SessionConfig = {
       modalities: ['text', 'audio'],
       input_audio_format: 'pcm16',
       output_audio_format: 'pcm16',
-      turn_detection: { type: 'server_vad' },
+      turn_detection: {
+        type: 'server_vad',
+        ...(vad?.prefixPaddingMs === undefined ? {} : { prefix_padding_ms: vad.prefixPaddingMs }),
+        ...(vad?.silenceDurationMs === undefined ? {} : { silence_duration_ms: vad.silenceDurationMs }),
+        ...(vad?.energyThreshold === undefined ? {} : { energy_awakeness_threshold: vad.energyThreshold }),
+      },
       ...this.options.voice === undefined ? {} : { voice: this.options.voice },
       ...this.options.instructions === undefined ? {} : { instructions: this.options.instructions },
     }
@@ -228,9 +240,12 @@ export class RealtimeSession {
         return this.events.onSpeechStarted?.({ audioStartMs: event.audio_start_ms })
       case 'input_audio_buffer.speech_stopped':
         return this.events.onSpeechStopped?.({ audioEndMs: event.audio_end_ms })
+      // The platform has shipped both spellings of this event; accept either.
       case 'conversation.item.input_audio_transcript.completed':
+      case 'conversation.item.input_audio_transcription.completed':
         return this.events.onUserTranscript?.(event.transcript)
       case 'conversation.item.input_audio_transcript.failed':
+      case 'conversation.item.input_audio_transcription.failed':
         return this.events.onUserTranscriptFailed?.({ message: event.error.message ?? 'transcription failed' })
       case 'response.audio_transcript.delta':
         return this.events.onAssistantTranscriptDelta?.(event.delta)

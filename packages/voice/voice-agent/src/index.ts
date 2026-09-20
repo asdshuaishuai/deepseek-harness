@@ -16,7 +16,7 @@ import type {} from '@deepseek-ai/dsh-stepfun-realtime'
 import { VoiceConversation } from './conversation.ts'
 import type { VoiceConversationEvents } from './conversation.ts'
 
-export { VoiceConversation } from './conversation.ts'
+export { VoiceConversation, DEFAULT_ACKNOWLEDGEMENT, ACKNOWLEDGEMENT_INSTRUCTIONS } from './conversation.ts'
 export type {
   VoiceConversationDeps,
   VoiceConversationEvents,
@@ -35,11 +35,18 @@ export interface Config {
   voice?: string
   /** System instructions for the voice model's own turns. */
   instructions?: string
+  /**
+   * Codex-style task acknowledgement: the voice model briefly confirms an
+   * accepted task while the agent (step-5) works. `false` disables it; a
+   * string replaces the default line. Absent = the default line.
+   */
+  acknowledge?: string | false
 }
 
 export const Config: z<Config> = z.object({
   voice: z.string(),
   instructions: z.string(),
+  acknowledge: z.union([z.string(), z.const(false)]),
 })
 
 /** Options for {@link VoiceAgentService.createConversation}. */
@@ -47,7 +54,7 @@ export interface CreateConversationOptions {
   /** Exact durable Session identity to adopt; a fresh identity when omitted. */
   sessionId?: string
   /** Per-conversation voice-model overrides over the plugin defaults. */
-  realtime?: { voice?: string; instructions?: string }
+  realtime?: { voice?: string; instructions?: string; acknowledge?: string | false }
 }
 
 /** The service exposed as `ctx.voiceAgent`. */

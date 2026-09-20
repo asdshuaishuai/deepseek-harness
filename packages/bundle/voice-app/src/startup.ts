@@ -37,6 +37,8 @@ export interface VoiceStartupValues {
    * `stepaudio-2.5-realtime` under a Step Plan subscription.
    */
   realtimeModel: string | undefined
+  /** `false` disables the Codex-style task acknowledgement; absent keeps it. */
+  ack: false | undefined
 }
 
 /**
@@ -52,6 +54,7 @@ function voiceCommand(): Command {
     .option('--voice <name>', 'voice the model speaks with')
     .option('--step-plan', 'run on the Step Plan subscription channel (chat and realtime endpoints)')
     .option('--realtime-model <id>', 'realtime model id over the channel default')
+    .option('--no-ack', 'do not speak a short acknowledgement when a task is accepted')
     .addHelpText('after', `
 The bridge speaks newline-delimited JSON on stdin and stdout. Send frames in:
   {"audio":"<base64 PCM16 16 kHz mono>"}   append one microphone frame
@@ -80,7 +83,7 @@ Examples:
 export function apply(ctx: Context): void {
   const program = voiceCommand()
   program.action(() => {
-    const options = program.opts<{ sessionId?: string; voice?: string; stepPlan?: boolean; realtimeModel?: string }>()
+    const options = program.opts<{ sessionId?: string; voice?: string; stepPlan?: boolean; realtimeModel?: string; ack?: boolean }>()
     const sessionId = options.sessionId
     if (sessionId !== undefined && sessionId.trim() === '') {
       program.error('error: --session-id requires a non-empty session id')
@@ -94,6 +97,8 @@ export function apply(ctx: Context): void {
       voice: options.voice,
       stepPlan: options.stepPlan === true,
       realtimeModel,
+      // commander's --no-ack flag yields ack === false only when passed.
+      ack: options.ack === false ? false : undefined,
     } satisfies VoiceStartupValues)
   })
   parseCmdline(ctx, program)

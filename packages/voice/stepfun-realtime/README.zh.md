@@ -1,5 +1,5 @@
 ---
-description: "StepAudio 3 Realtime 双工语音 WebSocket 客户端（标准与 Step Plan 通道，stepaudio-3-realtime-preview），带公网端点校验与可注入传输。"
+description: "StepAudio Realtime 双工语音 WebSocket 客户端（标准通道：stepaudio-3-realtime-preview；Step Plan：stepaudio-2.5-realtime），带公网端点校验、VAD 调优与可注入传输。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-面向 StepFun realtime WebSocket 打开一条双工语音会话：服务端 VAD 把话语切分为转写，语音回答以 PCM16 音频帧返回，事件词汇以带类型的回调呈现。通过配置选择标准通道或 Step Plan 订阅端点；两者都说 `stepaudio-3-realtime-preview`，可用 `model` 覆盖。会话策略——把语音轮次与 agent 配对——属于 `dsh-voice-agent` 这类消费方。
+面向 StepFun realtime WebSocket 打开一条双工语音会话：服务端 VAD 把话语切分为转写，语音回答以 PCM16 音频帧返回，事件词汇以带类型的回调呈现。通过配置选择标准通道或 Step Plan 订阅端点；模型默认值按通道区分——标准通道为 `stepaudio-3-realtime-preview`，Step Plan 订阅为 `stepaudio-2.5-realtime`（订阅暂未收录 StepAudio 3 Realtime）——可用 `model` 或 `$STEPFUN_REALTIME_MODEL` 覆盖。会话策略——把语音轮次与 agent 配对——属于 `dsh-voice-agent` 这类消费方。
 
 ## 目录
 
@@ -41,7 +41,7 @@ kind: "package-reference"
 | `channel` | `standard` | `standard`（`wss://api.stepfun.com/v1/realtime`）或 `step-plan`（`wss://api.stepfun.com/step_plan/v1/realtime`） |
 | `apiKeyEnv` | `STEPFUN_API_KEY` | 逐会话解析的凭据引用 |
 | `baseURL` | 通道端点，或 `$STEPFUN_REALTIME_URL` | WS(S) 根地址；任何连接前按公网端点校验 |
-| `model` | `stepaudio-3-realtime-preview`，或 `$STEPFUN_REALTIME_MODEL` | 以 `?model=` 发送的实时模型 id |
+| `model` | `$STEPFUN_REALTIME_MODEL`，否则按通道默认 | 以 `?model=` 发送的实时模型 id；标准通道 `stepaudio-3-realtime-preview`，Step Plan 为 `stepaudio-2.5-realtime` |
 | `voice` | 平台默认 | 模型说话使用的音色 |
 | `connectTimeoutMs` | `10000` | `session.created` 握手上限 |
 
@@ -88,6 +88,7 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 
 - `stepaudio-3-realtime-preview` 是限免期模型 id；付费版本上线后平台会更换名称——届时用 `model` 或 `$STEPFUN_REALTIME_MODEL` 覆盖。
+- **Step Plan 通道暂未收录 StepAudio 3 Realtime**——订阅目录当前为 `stepaudio-2.5-realtime`，这也是 plan 通道的默认值；要在订阅通道之外使用 StepAudio 3 Realtime，请走开放平台通道。
 - 会话仅限传输层：转写持久化、排队与 agent 配对都不在本包。
 
 以上是当前包的约束，不是任务清单。

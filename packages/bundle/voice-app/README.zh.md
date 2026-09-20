@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-运行 `dsh --profile voice` 即可获得基于普通 agent 循环的双工语音对话：定稿转写变成 agent 任务，回答被读出，每个轮次都落入持久会话日志。runner 以 stdio JSON 帧桥与任意驱动进程对话。`--step-plan` 把整个 profile 切到 Step Plan 订阅端点；`--voice` 与 `--session-id` 选择音色并恢复会话。
+运行 `dsh --profile voice` 即可获得基于普通 agent 循环的双工语音对话：定稿转写变成 agent 任务，回答被读出，每个轮次都落入持久会话日志。runner 以 stdio JSON 帧桥与任意驱动进程对话。`--step-plan` 把整个 profile 切到 Step Plan 订阅端点；`--voice` 与 `--session-id` 选择音色并恢复会话。`--no-ack` 关闭转写被受理时播报的简短任务确认语。
 
 ## 目录
 
@@ -48,7 +48,7 @@ ffmpeg -f avfoundation -i ":0" -f s16le -ar 16000 -ac 1 pipe:1 | <feed frames to
 # and play the audio events through: ffplay -nodisp -autoexit -f s16le -ar 24000 -ac 1 -i pipe:0
 ```
 
-`--step-plan` 一键翻转两半：chat 请求发往 `https://api.stepfun.com/step_plan/v1`，realtime 会话连 `wss://api.stepfun.com/step_plan/v1/realtime`，说 plan 支持的 `stepaudio-3-realtime-preview`。无论哪种方式，设置里的 `llm-stepfun:` 分节仍可覆盖 chat 行。
+`--step-plan` 一键翻转两半：chat 请求发往 `https://api.stepfun.com/step_plan/v1`，realtime 会话连 `wss://api.stepfun.com/step_plan/v1/realtime`，默认使用 plan 支持的 `stepaudio-2.5-realtime`（订阅暂未收录 StepAudio 3 Realtime）。无论哪种方式，设置里的 `llm-stepfun:` 分节仍可覆盖 chat 行。
 
 -----
 

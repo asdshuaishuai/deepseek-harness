@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-在一个持久 Agent 上进行语音对话：服务端 VAD 把每句话定稿为转写，每条转写都成为由配置的主力模型执行的 agent 任务，该轮的最终 assistant 文本经由同一条 realtime 会话读出。打断（播放回答时用户开口）只取消语音，agent 轮本身照常跑完。传入 `sessionId` 可恢复会话；持久会话日志保留每个语音来源的轮次。
+在一个持久 Agent 上进行语音对话：服务端 VAD 把每句话定稿为转写，每条转写都成为由配置的主力模型执行的 agent 任务，该轮的最终 assistant 文本经由同一条 realtime 会话读出。打断（播放回答时用户开口）只取消语音，agent 轮本身照常跑完。传入 `sessionId` 可恢复会话；持久会话日志保留每个语音来源的轮次。agent 工作期间，语音模型会简短确认已受理的任务（Codex 式；`acknowledge: false` 关闭，字符串可替换默认话术）。
 
 ## 目录
 

@@ -121,6 +121,32 @@ describe('RealtimeSession.open', () => {
     await expect(opened).resolves.toBeUndefined()
   })
 
+  it('carries server-VAD tuning into the session configuration', async () => {
+    void 0
+    const holder: { transport?: FakeTransport } = {}
+    const session = new RealtimeSession({
+      url: 'wss://api.stepfun.com/v1/realtime?model=stepaudio-3-realtime-preview',
+      authorization: 'Bearer test-key',
+      connectTimeoutMs: 2_000,
+      transport: recordingFactory(holder),
+      turnDetection: { prefixPaddingMs: 300, silenceDurationMs: 250, energyThreshold: 1800 },
+    }, {})
+    const opened = session.open()
+    expect(lastClientEvent(holder.transport ?? undefined as unknown as FakeTransport)).toMatchObject({
+      type: 'session.update',
+      session: {
+        turn_detection: {
+          type: 'server_vad',
+          prefix_padding_ms: 300,
+          silence_duration_ms: 250,
+          energy_awakeness_threshold: 1800,
+        },
+      },
+    })
+    holder.transport?.deliver({ type: 'session.created', session: {} })
+    await expect(opened).resolves.toBeUndefined()
+  })
+
   it('rejects on an error frame during the handshake and restores consumer callbacks', async () => {
     const errors: string[] = []
     const { session, transport } = createSession({ onError: (error) => { errors.push(error.message ?? '') } })
@@ -147,6 +173,7 @@ describe('RealtimeSession steady state', () => {
     transport.deliver({ type: 'input_audio_buffer.speech_started', audio_start_ms: 10 })
     transport.deliver({ type: 'input_audio_buffer.speech_stopped', audio_end_ms: 900 })
     transport.deliver({ type: 'conversation.item.input_audio_transcript.completed', transcript: 'hello' })
+    transport.deliver({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'hello again' })
     transport.deliver({ type: 'response.audio_transcript.delta', delta: 'hi ' })
     transport.deliver({ type: 'response.audio_transcript.delta', delta: 'there' })
     transport.deliver({ type: 'response.audio.delta', delta: 'QUJD' })
@@ -156,6 +183,7 @@ describe('RealtimeSession steady state', () => {
       'started',
       'stopped',
       'user:hello',
+      'user:hello again',
       'text:hi ',
       'text:there',
       'done',
@@ -194,7 +222,7 @@ describe('RealtimeSession steady state', () => {
     expect(lastClientEvent(transport)).toEqual({ type: 'response.cancel' })
     session.close()
     expect(transport.closed).toBe(true)
-    expect(() => session.appendAudio('after')).toThrow(/closed/)
+    expect(() => { session.appendAudio('after') }).toThrow(/closed/)
   })
 })
 

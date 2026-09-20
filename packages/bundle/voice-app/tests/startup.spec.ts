@@ -28,6 +28,7 @@ describe('voice-startup options', () => {
       voice: undefined,
       stepPlan: false,
       realtimeModel: undefined,
+      ack: undefined,
     })
   })
 
@@ -42,6 +43,17 @@ describe('voice-startup options', () => {
       voice: 'tongtong',
       stepPlan: true,
       realtimeModel: 'stepaudio-2.5-realtime',
+      ack: undefined,
+    })
+  })
+
+  it('carries --no-ack as a false acknowledgement', async () => {
+    await expect(parseStartup(['--no-ack'])).resolves.toEqual({
+      sessionId: undefined,
+      voice: undefined,
+      stepPlan: false,
+      realtimeModel: undefined,
+      ack: false,
     })
   })
 
