@@ -3875,6 +3875,28 @@ export interface Config {
 
 Source: [`packages/web/web-search-perplexity/src/index.ts:30`](../packages/web/web-search-perplexity/src/index.ts)
 
+<a id="deepseek-aidsh-web-search-stepfun"></a>
+
+## `@deepseek-ai/dsh-web-search-stepfun`
+
+Requires: `web`
+
+```ts config-catalog
+/** Plugin config (all optional — `apply` fills env-var and constant defaults). */
+export interface Config {
+  /** Literal StepFun API key; prefer {@link apiKeyEnv} so no secret enters configuration files. */
+  apiKey?: string
+  /** Credential reference resolved for each search; defaults to `STEPFUN_API_KEY`. */
+  apiKeyEnv?: string
+  /** Search endpoint base; `/search` is appended. Defaults to the public API. */
+  baseURL?: string
+  /** Default result count sent as the API's `n`. Defaults to 5. */
+  numResults?: number
+}
+```
+
+Source: [`packages/web/web-search-stepfun/src/index.ts:42`](../packages/web/web-search-stepfun/src/index.ts)
+
 <a id="deepseek-aidsh-webhook-github"></a>
 
 ## `@deepseek-ai/dsh-webhook-github`

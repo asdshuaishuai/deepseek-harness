@@ -415,25 +415,34 @@
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
 
-    # The shared base enables the stable model-facing web_fetch tool over the
-    # provider-neutral HTTP fetcher. Web search reaches the model through the
-    # platform's own MCP below (StepSearch's `mcp__stepfun-search__web_search`),
-    # so the seam-level `web_search` tool stays unregistered and the tool row
-    # keeps `search` off; a deployment with a seam-level search provider
-    # registers it and flips `search` back on.
+    # The shared base carries both StepFun web-search routes. The seam-level
+    # `web_search` function tool rides the Search API provider below — the
+    # open-platform route the platform recommends for `step-5-preview`, whose
+    # chat requests reject a built-in `web_search` tool — and bills per the
+    # open-platform web-search pricing. The StepSearch MCP below mounts the
+    # same two capabilities (`mcp__stepfun-search__web_search`/`web_fetch`)
+    # under Step Plan subscription credit instead. Both stay mounted; drop a
+    # row (or set `search: false` here) to keep one path only.
     - id: web
       name: '@deepseek-ai/dsh-web'
       config:
         fetchProvider: http
+        searchProvider: stepfun
 
     - id: web-fetch-http
       name: '@deepseek-ai/dsh-web-fetch-http'
+
+    # StepFun's open-platform Search API (`POST /v1/search`); the key resolves
+    # per search from the credentials service or $STEPFUN_API_KEY, and a
+    # keyless deployment boots with the rest of the composition.
+    - id: web-search-stepfun
+      name: '@deepseek-ai/dsh-web-search-stepfun'
 
     - id: tool-web
       name: '@deepseek-ai/dsh-tool-web'
       config:
         fetch: true
-        search: false
+        search: true
 
     - id: mcp-resources
       name: '@deepseek-ai/dsh-mcp-resources'

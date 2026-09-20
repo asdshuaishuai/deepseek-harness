@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-把 StepFun 内置的网络工具交给模型：官方 StepSearch MCP 服务器提供 `web_search` 与 `web_fetch`，经 Streamable HTTP 挂载并按 Step Plan 订阅计费。包装插件在加载时解析一次端点与 Bearer 密钥——先凭据服务、后环境——没有密钥时告警一次并保持不挂载，组合的其余部分照常启动。
+把 StepFun 内置的网络工具交给模型：官方 StepSearch MCP 服务器提供 `web_search` 与 `web_fetch`，经 Streamable HTTP 挂载。`web_search` 每次调用 0.04 元、`web_fetch` 不单独计费；两者消耗 Step Plan 订阅的月度 Credit（可用加油包补充、月末清零），并受平台的 QPM／QPH 与并发限流约束。包装插件在加载时解析一次端点与 Bearer 密钥——先凭据服务、后环境——没有密钥时告警一次并保持不挂载，组合的其余部分照常启动。
 
 ## 目录
 

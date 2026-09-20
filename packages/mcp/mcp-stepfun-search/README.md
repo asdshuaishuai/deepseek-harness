@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Give the model StepFun's built-in web tools: the official StepSearch MCP server exposes `web_search` and `web_fetch`, mounted over Streamable HTTP and billed through the Step Plan subscription. The wrapper resolves the endpoint and bearer key once at load — credentials service, then environment — and without a key it warns once and stays unmounted while the rest of the composition boots.
+Give the model StepFun's built-in web tools: the official StepSearch MCP server exposes `web_search` and `web_fetch`, mounted over Streamable HTTP. `web_search` bills 0.04 CNY per call and `web_fetch` is unbilled; both consume the Step Plan subscription's monthly credit (top-up packs apply, month-end reset), under the platform's QPM/QPH and concurrency limits. The wrapper resolves the endpoint and bearer key once at load — credentials service, then environment — and without a key it warns once and stays unmounted while the rest of the composition boots.
 
 ## Table of Contents
 

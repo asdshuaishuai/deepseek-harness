@@ -53,9 +53,14 @@ describe('dsh-base bundle', () => {
       provider: 'stepfun-official',
       model: 'step-5-preview',
     })
-    expect(rows.find(row => row.id === 'web')?.config).toMatchObject({ fetchProvider: 'http' })
+    expect(rows.find(row => row.id === 'web')?.config).toMatchObject({ fetchProvider: 'http', searchProvider: 'stepfun' })
     expect(rows.find(row => row.id === 'web-fetch-http')).toBeDefined()
-    expect(rows.find(row => row.id === 'tool-web')?.config).toMatchObject({ fetch: true, search: false })
+    // Both StepFun web-search routes ship: the seam-level `web_search` over
+    // the open-platform Search API, and the StepSearch MCP below.
+    expect(rows.find(row => row.id === 'web-search-stepfun')).toMatchObject({
+      name: '@deepseek-ai/dsh-web-search-stepfun',
+    })
+    expect(rows.find(row => row.id === 'tool-web')?.config).toMatchObject({ fetch: true, search: true })
     // StepFun's default MCP mounts by default: the official StepSearch server
     // (web_search + web_fetch over Streamable HTTP, Step Plan billing) with
     // no inlined key — the mount resolves the credential itself.
@@ -63,6 +68,7 @@ describe('dsh-base bundle', () => {
       name: '@deepseek-ai/dsh-mcp-stepfun-search',
     })
     expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-mcp-stepfun-search')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-web-search-stepfun')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-codex')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-claude-code')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-llm-deepseek')

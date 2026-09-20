@@ -162,6 +162,8 @@ flowchart LR
   cfg --> plugin_dsh_base_web
   plugin_dsh_base_web_fetch_http["web-fetch-http<br/>@deepseek-ai/dsh-web-fetch-http"]
   cfg --> plugin_dsh_base_web_fetch_http
+  plugin_dsh_base_web_search_stepfun["web-search-stepfun<br/>@deepseek-ai/dsh-web-search-stepfun"]
+  cfg --> plugin_dsh_base_web_search_stepfun
   plugin_dsh_base_tool_web["tool-web<br/>@deepseek-ai/dsh-tool-web"]
   cfg --> plugin_dsh_base_tool_web
   plugin_dsh_base_mcp_resources["mcp-resources<br/>@deepseek-ai/dsh-mcp-resources"]
@@ -259,6 +261,7 @@ flowchart LR
 | `repeat-tool-reminder` | `@deepseek-ai/dsh-repeat-tool-reminder` |
 | `web` | `@deepseek-ai/dsh-web` |
 | `web-fetch-http` | `@deepseek-ai/dsh-web-fetch-http` |
+| `web-search-stepfun` | `@deepseek-ai/dsh-web-search-stepfun` |
 | `tool-web` | `@deepseek-ai/dsh-tool-web` |
 | `mcp-resources` | `@deepseek-ai/dsh-mcp-resources` |
 | `stepfun-search-mcp` | `@deepseek-ai/dsh-mcp-stepfun-search` |
