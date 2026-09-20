@@ -90,6 +90,48 @@ const DEFAULT_DEEPSEEK_MODELS = [
   { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', contextWindow: 1_000_000 },
 ]
 
+/** The StepFun profile shape: channel selection plus the same catalog family. */
+const StepfunConfig = Schema.object({
+  channel: Schema.union(['standard', 'step-plan']),
+  apiKeyEnv: Schema.string().role('credential-ref'),
+  baseURL: Schema.string(),
+  maxTokens: Schema.number().step(1).min(1),
+  defaultContextWindow: Schema.number().step(1).min(1),
+  models: Schema.array(Schema.object({
+    id: Schema.string().required(),
+    name: Schema.string(),
+    description: Schema.string(),
+    contextWindow: Schema.number().step(1).min(1),
+    inputModalities: Schema.array(Schema.string()).min(1),
+  })).default([
+    {
+      id: 'step-5-preview',
+      name: 'Step 5 Preview',
+      description: '',
+      contextWindow: 1_000_000,
+      inputModalities: ['text', 'image'],
+    },
+    {
+      id: 'step-3',
+      name: 'Step 3',
+      description: '',
+      contextWindow: 131_072,
+      inputModalities: ['text'],
+    },
+  ]),
+})
+
+const DEFAULT_STEPFUN_MODELS = [
+  {
+    id: 'step-5-preview',
+    name: 'Step 5 Preview',
+    description: 'Preserved hidden detail',
+    contextWindow: 1_000_000,
+    inputModalities: ['text', 'image'],
+  },
+  { id: 'step-3', name: 'Step 3', contextWindow: 131_072, inputModalities: ['text'] },
+]
+
 function wireNamespaces(): SettingsNamespaceView[] {
   return [
     {
@@ -705,6 +747,57 @@ describe('ModelsSection', () => {
         { op: 'set', path: ['models'], value: [
           { ...DEFAULT_DEEPSEEK_MODELS[0], name: 'Messages Flash' },
           DEFAULT_DEEPSEEK_MODELS[1],
+        ] },
+      ],
+      0,
+    ]])
+  })
+
+  it('edits the StepFun card with its own endpoint hint and default endpoint placeholder', async () => {
+    const namespace: SettingsNamespaceView = {
+      ...wireNamespaces()[0]!,
+      ns: 'llm-stepfun',
+      schema: JSON.parse(JSON.stringify(StepfunConfig.toJSON())) as JsonValue,
+      value: {
+        apiKeyEnv: 'STEPFUN_API_KEY',
+        baseURL: 'https://api.stepfun.com/v1',
+        defaultContextWindow: 1_000_000,
+        maxTokens: 65_536,
+        models: DEFAULT_STEPFUN_MODELS,
+      },
+      base: { defaultContextWindow: 1_000_000, maxTokens: 65_536, models: DEFAULT_STEPFUN_MODELS },
+      user: {},
+    }
+    const { face, mutate, set } = scriptedFace({
+      mutate: vi.fn(() => Promise.resolve(remoteOk(namespace))),
+    })
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="stepfun-official"
+      displayName="StepFun"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={vi.fn()}
+    />)
+    fireEvent.click(screen.getByText(en.customized))
+    expect(screen.getByLabelText<HTMLInputElement>(en.baseUrl).placeholder)
+      .toBe('https://api.stepfun.com/v1')
+    expect(screen.queryByLabelText(en.customApi)).toBeNull()
+    expect(screen.getByText(en.stepfunEndpointHint)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'sk-step-test' } })
+    fireEvent.change(screen.getByLabelText(`${en.modelName} 1`), { target: { value: 'Step 5 Preview Renamed' } })
+    fireEvent.click(screen.getByText(en.apply))
+    await waitFor(() => { expect(set).toHaveBeenCalledWith('STEPFUN_API_KEY', 'sk-step-test') })
+    expect(mutate.mock.calls).toEqual([[
+      'llm-stepfun',
+      [
+        { op: 'set', path: ['models'], value: [
+          { ...DEFAULT_STEPFUN_MODELS[0], name: 'Step 5 Preview Renamed' },
+          DEFAULT_STEPFUN_MODELS[1],
         ] },
       ],
       0,

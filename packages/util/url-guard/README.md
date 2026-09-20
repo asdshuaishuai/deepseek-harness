@@ -71,14 +71,14 @@ None.
 <a id="model-experience"></a>
 ## Model Experience
 
-None. The guard is a pure URL validation helper; it registers nothing model-facing and no validated value reaches prompts by itself.
+None, as the guard is a pure URL validation helper; it registers nothing model-facing and no validated value reaches prompts by itself.
 
 #### KV Cache effect
 
 None; the guard contributes no request content.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - Non-literal hostnames are not resolved: the guard judges operator configuration, and untrusted-input callers must resolve and re-check every answer themselves.
 

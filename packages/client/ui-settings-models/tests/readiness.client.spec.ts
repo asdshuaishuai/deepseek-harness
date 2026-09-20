@@ -85,6 +85,30 @@ describe('onboardingReadiness', () => {
     expect(onboardingReadiness(state())).toEqual({ kind: 'credential-missing' })
   })
 
+  it('targets the composition route whatever its id is, and never a hand-declared one', () => {
+    // The shipped StepFun composition: its own root-namespaced route.
+    expect(onboardingReadiness(state({
+      rows: [row({
+        entry: {
+          provider: 'stepfun-official',
+          displayName: 'StepFun',
+          settingsNs: 'llm-stepfun',
+          settingsPath: [],
+          active: true,
+        },
+      })],
+    }))).toEqual({ kind: 'credential-missing' })
+    // A provider the user declared by hand is repaired on its own card, not
+    // by the first-run prompt.
+    expect(onboardingReadiness(state({
+      rows: [row({ entry: { ...row().entry, declared: true } })],
+    }))).toEqual({ kind: 'adapter-absent' })
+    // A route profile nested under its section is not the official route either.
+    expect(onboardingReadiness(state({
+      rows: [row({ entry: { ...row().entry, settingsPath: ['providers', 'hfai'] } })],
+    }))).toEqual({ kind: 'adapter-absent' })
+  })
+
   it('ends onboarding once any other registered provider can serve requests', () => {
     expect(onboardingReadiness(state({ rows: [row(), otherRow()] }))).toEqual({ kind: 'provider-ready' })
     // A provider the user cannot reach yet leaves the prompt in place.

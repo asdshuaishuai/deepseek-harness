@@ -85,8 +85,8 @@ Indirectly, through the rows it mounts. The bundle is a patch-list carrier; the 
 
 The persona suffix rewrites the system prompt for the voice profile only; within a session the prefix is stable and cache-eligible as usual.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - The runner owns no audio devices: capture and playback belong to the driver process wrapping the bridge.
 - One bridge process holds one conversation; multi-session routing is the driver's job.

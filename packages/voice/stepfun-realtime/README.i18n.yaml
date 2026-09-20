@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/voice/stepfun-realtime/README.md
-README.md: ead0d8292dffd9144a159661bb92cc40d678e5f5
-README.zh.md: bb3617162d5e4cdd00b5804a226ef70e7f74b647
+README.md: 835dd2e2a907148714de60aa8452b69306b12ab0
+README.zh.md: 73ef164625f802eb5510ffb946a84a611002931d

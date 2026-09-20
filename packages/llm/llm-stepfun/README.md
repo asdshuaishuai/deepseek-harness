@@ -93,8 +93,8 @@ Provider tokenization governs exact text input; the adapter reports the stream's
 
 An unchanged assembled prefix is eligible for provider cache reuse. Deterministic request-image bytes do not make the full prefix immutable: a changed execution-world path rewrites historical descriptor text, and an offload decision replaces image parts with placeholders on later turns.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - The Anthropic-compatible `/step_plan` Messages protocol is not implemented; the Step Plan channel rides the OpenAI-compatible `/step_plan/v1` root.
 - No Files API: chat images inline as base64 data-URL parts under route budgets.

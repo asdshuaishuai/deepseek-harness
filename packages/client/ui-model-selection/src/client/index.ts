@@ -48,8 +48,8 @@ function rowId(providerId: string, modelId: string): string {
 }
 
 const BUILTIN_DESCRIPTION_KEYS: Readonly<Record<string, ModelKey>> = {
-  'deepseek-official/deepseek-v4-flash': 'option.deepseekV4Flash.description',
-  'deepseek-official/deepseek-v4-pro': 'option.deepseekV4Pro.description',
+  'stepfun-official/step-5-preview': 'option.step5Preview.description',
+  'stepfun-official/step-3': 'option.step3.description',
 }
 
 function descriptionOf(

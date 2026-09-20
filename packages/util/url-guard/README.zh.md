@@ -34,7 +34,7 @@ kind: "package-library"
 ```ts
 import { assertPublicHttpUrl, isPublicHost } from '@deepseek-ai/dsh-url-guard'
 
-assertPublicHttpUrl('https://api.stepfun.com/v1', 'my-plugin: baseURL') // 通过
+assertPublicHttpUrl('https://api.stepfun.com/v1', 'my-plugin: baseURL') // ok
 isPublicHost('127.0.0.1') // false
 ```
 
@@ -54,9 +54,9 @@ isPublicHost('127.0.0.1') // false
 <a id="further-exploration"></a>
 ## 延伸阅读
 
-- [dsh-llm-stepfun](../../llm/llm-stepfun/README.md) — 在配置解析阶段通过本守卫校验端点。
-- [dsh-stepfun-realtime](../../voice/stepfun-realtime/README.md) — 在任何连接之前校验 WebSocket 根地址。
-- [dsh-mcp-stepfun-search](../../mcp/mcp-stepfun-search/README.md) — 挂载客户端之前校验 StepSearch MCP 端点。
+- [dsh-llm-stepfun](../../llm/llm-stepfun/README.zh.md) — 在配置解析阶段通过本守卫校验端点。
+- [dsh-stepfun-realtime](../../voice/stepfun-realtime/README.zh.md) — 在任何连接之前校验 WebSocket 根地址。
+- [dsh-mcp-stepfun-search](../../mcp/mcp-stepfun-search/README.zh.md) — 挂载客户端之前校验 StepSearch MCP 端点。
 
 <a id="dev-note"></a>
 ## 开发备注
@@ -71,14 +71,14 @@ isPublicHost('127.0.0.1') // false
 <a id="model-experience"></a>
 ## Model Experience
 
-无。守卫是纯 URL 校验辅助；它不注册任何模型可见内容，校验值本身也不会进入提示词。
+无，因为守卫是纯 URL 校验辅助；它不注册任何模型可见内容，校验值本身也不会进入提示词。
 
 #### KV Cache effect
 
 无；本包不贡献任何请求内容。
 
-<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - 非字面量主机名不做 DNS 解析：守卫只判断操作者配置，代表不可信输入的调用方必须自行解析并复查每个结果。
 

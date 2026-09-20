@@ -84,8 +84,8 @@ kind: "package-reference"
 
 对 agent 请求无影响；realtime 轮次是独立的供应商会话，有自己的服务端状态。
 
-<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - `stepaudio-3-realtime-preview` 是限免期模型 id；付费版本上线后平台会更换名称——届时用 `model` 或 `$STEPFUN_REALTIME_MODEL` 覆盖。
 - 会话仅限传输层：转写持久化、排队与 agent 配对都不在本包。

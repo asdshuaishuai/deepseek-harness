@@ -84,8 +84,8 @@ Indirectly, through the conversation bridge. The realtime model itself runs serv
 
 None for agent requests; realtime turns are a separate provider session with its own server-side state.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - `stepaudio-3-realtime-preview` is the free-preview model id; the platform replaces the name when the paid version ships — override with `model` or `$STEPFUN_REALTIME_MODEL` then.
 - The session is transport-only: no transcript persistence, queueing, or agent pairing lives here.

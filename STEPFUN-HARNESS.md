@@ -40,6 +40,14 @@ pnpm dsh --profile voice --step-plan              # Step Plan endpoints, chat + 
 pnpm dsh --profile voice --step-plan --realtime-model stepaudio-2.5-realtime
 ```
 
+### Web client surfaces follow the fork
+
+The web client's Models page and first-run onboarding now speak the fork's composition instead of pinning the upstream DeepSeek route:
+
+- the Models page renders the `llm-stepfun` card as a curated family — key, endpoint (placeholder shows the resolved default), and the editable model catalog with its endpoint hint stating the public HTTP(S)-only restriction;
+- first-run onboarding targets the adapter's own root-namespaced route whatever its id (`stepfun-official` in `llm-stepfun` here), so a fresh deployment is asked for the StepFun key with provider-aware copy instead of silently skipping the step;
+- the `/model` popup localizes the built-in `step-5-preview`/`step-3` catalog descriptions.
+
 ### Removed from the composition (StepFun-only, for now)
 
 The `dsh-base` bundle no longer mounts: `llm-deepseek`, `llm-pi-ai` (the multi-provider OpenAI/Anthropic/Google/… twin), `deepseek-llm-api-extensions`, `session-log-deepseek`, `plugin-package-inventory-deepseek`, and `web-search-deepseek`. Web search reaches the model through the StepSearch MCP above instead of a seam-level provider, so the built-in `web_search` tool stays unregistered while `web_fetch` remains. OTel telemetry is switched off by default (its exporter endpoint is an external service this fork does not ship). The packages remain in the repository — they are only unmounted — so upstream merges stay cheap.

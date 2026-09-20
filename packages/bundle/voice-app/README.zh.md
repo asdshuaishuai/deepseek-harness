@@ -44,8 +44,8 @@ dsh --profile voice --session-id session-…
 用拥有音频设备的进程包装它；ffmpeg 以 raw PCM16 16 kHz mono 采集麦克风并以 24 kHz mono 播放回答：
 
 ```sh
-ffmpeg -f avfoundation -i ":0" -f s16le -ar 16000 -ac 1 pipe:1 | <把帧喂给 dsh --profile voice>
-# 并播放 audio 事件： ffplay -nodisp -autoexit -f s16le -ar 24000 -ac 1 -i pipe:0
+ffmpeg -f avfoundation -i ":0" -f s16le -ar 16000 -ac 1 pipe:1 | <feed frames to dsh --profile voice>
+# and play the audio events through: ffplay -nodisp -autoexit -f s16le -ar 24000 -ac 1 -i pipe:0
 ```
 
 `--step-plan` 一键翻转两半：chat 请求发往 `https://api.stepfun.com/step_plan/v1`，realtime 会话连 `wss://api.stepfun.com/step_plan/v1/realtime`，说 plan 支持的 `stepaudio-3-realtime-preview`。无论哪种方式，设置里的 `llm-stepfun:` 分节仍可覆盖 chat 行。
@@ -85,8 +85,8 @@ ffmpeg -f avfoundation -i ":0" -f s16le -ar 16000 -ac 1 pipe:1 | <把帧喂给 d
 
 persona 后缀只为 voice profile 改写系统提示；会话内部前缀照常稳定并可复用缓存。
 
-<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - runner 不拥有音频设备：采集与播放属于包装桥的驱动进程。
 - 一个桥进程持有一条会话；多会话路由是驱动的职责。

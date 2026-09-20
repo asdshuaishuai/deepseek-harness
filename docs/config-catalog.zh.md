@@ -1608,6 +1608,95 @@ export type Config = Readonly<Record<string, never>>
 
 来源：[`packages/llm/llm-retry/src/index.ts:25`](../packages/llm/llm-retry/src/index.ts)
 
+<a id="deepseek-aidsh-llm-stepfun"></a>
+
+## `@deepseek-ai/dsh-llm-stepfun`
+
+需要：`llm`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema and doubling
+ * as the `llm-stepfun` settings-section shape. Every field is optional in
+ * yml: a missing API key resolves through {@link Config.apiKeyEnv} at each
+ * request (a request without any key fails with `MISSING_CREDENTIAL`, not at
+ * plugin load).
+ */
+export interface Config {
+  /**
+   * Billing channel selecting the default endpoint and catalog: `standard`
+   * (open platform, default) or `step-plan` (Step Plan subscription, which
+   * also hosts the StepSearch MCP and the plan realtime endpoint). An explicit
+   * {@link Config.baseURL} or {@link Config.models} still wins over the
+   * channel default.
+   */
+  channel?: StepFunChannel
+  /** Credential reference (environment-variable name) resolved per request; defaults to `STEPFUN_API_KEY`. */
+  apiKeyEnv?: string
+  /**
+   * Endpoint base; falls back to $STEPFUN_BASE_URL from a trusted environment
+   * layer, then the channel's public API. Validated as a public HTTP(S) root:
+   * local, loopback, private, and reserved hosts are rejected before any
+   * request.
+   */
+  baseURL?: string
+  /** Default per-request output cap (default 65,536); a model's own cap and explicit request values win. */
+  maxTokens?: number
+  /** Positive context capacity used when the selected model has no exact value (default 1,000,000). */
+  defaultContextWindow?: number
+  /** Advisory models shown by discovery consumers; defaults to the channel's catalog. */
+  models?: StepFunCatalogModel[]
+  /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
+  streamIdleTimeoutMs?: number
+  /** Maximum accumulated base64 image payload per chat request (default 20 MiB). */
+  maxRequestImageBytes?: number
+  /** Maximum number of represented images per chat request (default 20). */
+  maxImagesPerRequest?: number
+  /** Base64-byte removal step after the request exceeds its byte bound (default 5 MiB). */
+  imageOffloadByteQuantum?: number
+  /** Image-count removal step after the request exceeds its count bound (default 10). */
+  imageOffloadCountQuantum?: number
+  /** Provider-owned model-request retry policy; omission uses normal mode with five retries. */
+  retryPolicy?: RetryPolicyConfig
+}
+
+/**
+ * Billing channel selecting the default endpoint and catalog: the standard
+ * open-platform API (`https://api.stepfun.com/v1`) or the Step Plan
+ * subscription API (`https://api.stepfun.com/step_plan/v1`), which also hosts
+ * the StepSearch MCP and the plan realtime endpoint.
+ */
+export type StepFunChannel = 'standard' | 'step-plan'
+
+/** One optional model entry advertised by the StepFun adapter. */
+export interface StepFunCatalogModel {
+  /** Wire model id accepted by the configured endpoint. */
+  id: string
+  /** Selector label; defaults to {@link id}. */
+  name?: string
+  /** Optional selector detail for deployments with similar model variants. */
+  description?: string
+  /** Known combined request/response context capacity; omitted falls back to the profile default. */
+  contextWindow?: number
+  /** Per-request output cap for this model; omission falls back to the profile's maxTokens. */
+  maxTokens?: number
+  /** Accepted request modalities; omission is text-only. */
+  inputModalities?: ModelModality[]
+  /** Encoded-byte target for one deterministic request preview. */
+  imageMaxBytes?: number
+  /**
+   * Selectable reasoning-effort ids this model accepts as `reasoning_effort`
+   * (Step 3.7 Flash: low/medium/high; Step 3.5 Flash 2603: low/high). Absence
+   * keeps thinking automatic with no request field.
+   */
+  reasoningEfforts?: string[]
+}
+```
+
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+
+来源：[`packages/llm/llm-stepfun/src/config.ts:33`](../packages/llm/llm-stepfun/src/config.ts)
+
 <a id="deepseek-aidsh-lsp-stdio"></a>
 
 ## `@deepseek-ai/dsh-lsp-stdio`
@@ -1726,6 +1815,38 @@ export interface ReconnectConfig {
 ```
 
 来源：[`packages/mcp/mcp-client/src/index.ts:104`](../packages/mcp/mcp-client/src/index.ts)
+
+<a id="deepseek-aidsh-mcp-stepfun-search"></a>
+
+## `@deepseek-ai/dsh-mcp-stepfun-search`
+
+```ts config-catalog
+/** Plugin config: endpoint, credential reference, namespace, and mount behavior. */
+export interface Config {
+  /** Credential reference (environment-variable name) resolved once at load; defaults to `STEPFUN_API_KEY`. */
+  apiKeyEnv?: string
+  /**
+   * StepSearch MCP endpoint, validated as a public HTTP(S) URL before any
+   * connection: local, loopback, private, and reserved hosts are rejected.
+   * Falls back to $STEPFUN_SEARCH_MCP_URL, then the public endpoint.
+   */
+  url?: string
+  /**
+   * Stable local namespace for the server's model-facing tool names
+   * (`mcp__<serverName>__<rawName>`); defaults to `stepfun-search`.
+   */
+  serverName?: string
+  /** Timeout per tool call in milliseconds (default 60,000). */
+  toolCallTimeoutMs?: number
+  /**
+   * Fail this plugin when the initial MCP connection or tool synchronization
+   * fails (default false: the supervisor logs and reconnects instead).
+   */
+  failOnStartupError?: boolean
+}
+```
+
+来源：[`packages/mcp/mcp-stepfun-search/src/index.ts:50`](../packages/mcp/mcp-stepfun-search/src/index.ts)
 
 <a id="deepseek-aidsh-message-feedback"></a>
 
@@ -2575,6 +2696,49 @@ export interface Config {
 ```
 
 来源：[`packages/ssh/ssh/src/index.ts:17`](../packages/ssh/ssh/src/index.ts)
+
+<a id="deepseek-aidsh-stepfun-realtime"></a>
+
+## `@deepseek-ai/dsh-stepfun-realtime`
+
+```ts config-catalog
+/** Plugin config: channel, endpoint, model, credential reference, voice, and handshake budget. */
+export interface Config {
+  /**
+   * Billing channel selecting the default realtime endpoint: `standard`
+   * (open platform, default) or `step-plan` (Step Plan subscription). An
+   * explicit {@link Config.baseURL} still wins.
+   */
+  channel?: StepFunChannel
+  /** Credential reference (environment-variable name) resolved per session; defaults to `STEPFUN_API_KEY`. */
+  apiKeyEnv?: string
+  /**
+   * WS(S) realtime endpoint root, validated against the public-host guard
+   * before any connection: local, loopback, private, and reserved hosts are
+   * rejected. Falls back to $STEPFUN_REALTIME_URL, then the channel endpoint.
+   */
+  baseURL?: string
+  /**
+   * Realtime model id sent as `?model=`; defaults to
+   * $STEPFUN_REALTIME_MODEL, then `stepaudio-3-realtime-preview`.
+   */
+  model?: string
+  /** Voice the model speaks with; the platform default applies when omitted. */
+  voice?: string
+  /** System instructions for the voice model's own turns. */
+  instructions?: string
+  /** Ceiling on the open handshake (`session.created`) wait (default ten seconds). */
+  connectTimeoutMs?: number
+}
+
+/**
+ * Billing channel selecting the default realtime endpoint: the standard open
+ * platform or the Step Plan subscription.
+ */
+export type StepFunChannel = 'standard' | 'step-plan'
+```
+
+来源：[`packages/voice/stepfun-realtime/src/index.ts:65`](../packages/voice/stepfun-realtime/src/index.ts)
 
 <a id="deepseek-aidsh-storage-domain"></a>
 
@@ -3547,6 +3711,24 @@ export type ApprovalPolicy = 'ask' | 'never'
 
 来源：[`packages/interaction/user-approval/src/index.ts:128`](../packages/interaction/user-approval/src/index.ts)
 
+<a id="deepseek-aidsh-voice-agent"></a>
+
+## `@deepseek-ai/dsh-voice-agent`
+
+需要：`stepfunRealtime` · `agents` · `sessions` · `agentDefaultModel`
+
+```ts config-catalog
+/** Plugin config: the voice-model defaults every conversation may override. */
+export interface Config {
+  /** Voice the model speaks with; the platform default applies when omitted. */
+  voice?: string
+  /** System instructions for the voice model's own turns. */
+  instructions?: string
+}
+```
+
+来源：[`packages/voice/voice-agent/src/index.ts:33`](../packages/voice/voice-agent/src/index.ts)
+
 <a id="deepseek-aidsh-web"></a>
 
 ## `@deepseek-ai/dsh-web`
@@ -3863,6 +4045,7 @@ export interface Config {
 - `@deepseek-ai/dsh-tool-cordis` — 需要 `tools` · `systemPrompt` · `cordisInspect`（[`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)）
 - `@deepseek-ai/dsh-tool-subagent-control` — 需要 `tools` · `subagents`（[`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)）
 - `@deepseek-ai/dsh-user-questions`（[`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts)）
+- `@deepseek-ai/dsh-voice-app` — 需要 `voiceAgent` · `voiceStartup`（[`packages/bundle/voice-app/src/index.ts`](../packages/bundle/voice-app/src/index.ts)）
 - `@deepseek-ai/dsh-webhook` — 需要 `agents` · `agentDefaultModel` · `agentPresets` · `permissionPresets` · `sessionTitle` · `workspaceRegistry`（[`packages/webhook/webhook/src/index.ts`](../packages/webhook/webhook/src/index.ts)）
 - `@deepseek-ai/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
 
@@ -3939,6 +4122,7 @@ export interface Config {
 - `@deepseek-ai/dsh-typert-generator`（[`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts)）
 - `@deepseek-ai/dsh-typert-protocol`（[`packages/typert/protocol/src/index.ts`](../packages/typert/protocol/src/index.ts)）
 - `@deepseek-ai/dsh-typert-registry`（[`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.ts)）
+- `@deepseek-ai/dsh-url-guard`（[`packages/util/url-guard/src/index.ts`](../packages/util/url-guard/src/index.ts)）
 - `@deepseek-ai/dsh-util-crypto`（[`packages/util/crypto/src/index.ts`](../packages/util/crypto/src/index.ts)）
 - `@deepseek-ai/dsh-util-time`（[`packages/util/time/src/index.ts`](../packages/util/time/src/index.ts)）
 - `@deepseek-ai/dsh-util-values`（[`packages/util/values/src/index.ts`](../packages/util/values/src/index.ts)）

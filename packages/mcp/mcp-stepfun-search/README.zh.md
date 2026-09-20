@@ -83,8 +83,8 @@ kind: "package-reference"
 
 工具结果像其他工具输出一样进入对话；包含历史搜索结果的未变化前缀仍可复用缓存。
 
-<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - 需要 Step Plan 订阅；没有订阅时初始连接失败，监管器的重连预算耗尽后工具缺席，直到重启。
 - Bearer 密钥只在加载时解析一次；轮换需要重启或 HMR 重载，且密钥位于子实例的静态头集合内。

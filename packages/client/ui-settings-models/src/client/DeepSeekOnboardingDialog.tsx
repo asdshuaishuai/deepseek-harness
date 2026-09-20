@@ -1,9 +1,9 @@
 /**
- * Official-DeepSeek first-run step. Readiness comes from the same
+ * Official-provider first-run step. Readiness comes from the same
  * provider/settings/credential join as the Models page: any provider the user
  * can already talk to ends the step, and only a user with none is offered the
- * official DeepSeek route. The step reuses that page's credential editor in
- * the onboarding plugin's shared modal, so the key is entered once.
+ * composition's own official route. The step reuses that page's credential
+ * editor in the onboarding plugin's shared modal, so the key is entered once.
  */
 
 import { useEffect } from 'react'
@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
-import { onboardingReadiness } from './store.ts'
+import { officialProviderRow, onboardingReadiness } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import { ProviderEditor } from './ProviderEditor.tsx'
@@ -80,11 +80,8 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
       return assertNever(readiness)
   }
 
-  const row = state.rows.find(candidate =>
-    candidate.entry.provider === 'deepseek-official'
-    && candidate.entry.settingsNs === 'llm-deepseek'
-    && candidate.entry.settingsPath.length === 0)
-  const namespace = state.namespaces.get('llm-deepseek')
+  const row = officialProviderRow(state)
+  const namespace = row === undefined ? undefined : state.namespaces.get(row.entry.settingsNs)
   /* v8 ignore next 2 -- credential-missing is derived only from this exact joined row. */
   if (row === undefined || namespace === undefined) return null
 
@@ -98,7 +95,9 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
 
   return (
     <OnboardingModal title={t('onboardingTitle')}>
-      <p className={styles.description}>{t('onboardingDescription')}</p>
+      <p className={styles.description}>
+        {t('onboardingDescription').replace('{provider}', () => row.entry.displayName)}
+      </p>
       <div className={styles.editor}>
         <ProviderEditor
           provider={row.entry.provider}

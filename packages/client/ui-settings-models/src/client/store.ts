@@ -285,12 +285,28 @@ export type OnboardingReadiness =
   }
 
 /**
+ * The composition's own root-namespaced route: the one provider the shipped
+ * adapter declares at its settings section's root and can offer a key field
+ * for. Hand-declared routes are excluded (`declared`) as are per-route
+ * profiles nested under a section (`settingsPath`), so the first-run prompt
+ * always targets the route the adapter ships, whatever its id is.
+ * @param state - current shared Models join snapshot.
+ * @returns the official route's row, or undefined when none is declared.
+ */
+export function officialProviderRow(state: ModelsSettingsState): ProviderRow | undefined {
+  return state.rows.find(candidate =>
+    candidate.entry.settingsNs !== ''
+    && candidate.entry.settingsPath.length === 0
+    && candidate.entry.declared !== true)
+}
+
+/**
  * Project first-run readiness from the provider/settings/credential join used
  * by the Models page. The step exists to leave the user with a model to talk
- * to, so ANY usable provider ends it; only when none exists does the official
- * DeepSeek route — the one route the prompt can offer a key field for — decide
- * whether prompting can help. A missing official configurable-provider
- * declaration means the adapter is not repairable by navigating to Models.
+ * to, so ANY usable provider ends it; only when none exists does the
+ * composition's own route ({@link officialProviderRow}) decide whether
+ * prompting can help. A missing official configurable-provider declaration
+ * means the adapter is not repairable by navigating to Models.
  * @param state - current shared Models join snapshot.
  * @returns the onboarding state without reading a parallel fact source.
  */
@@ -305,10 +321,7 @@ export function onboardingReadiness(state: ModelsSettingsState): OnboardingReadi
     }
   }
   if (state.rows.some(providerUsable)) return { kind: 'provider-ready' }
-  const row = state.rows.find(candidate =>
-    candidate.entry.provider === 'deepseek-official'
-    && candidate.entry.settingsNs === 'llm-deepseek'
-    && candidate.entry.settingsPath.length === 0)
+  const row = officialProviderRow(state)
   if (row === undefined) return { kind: 'adapter-absent' }
   if (!row.entry.active) {
     return {

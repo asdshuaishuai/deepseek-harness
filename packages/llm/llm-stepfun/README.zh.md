@@ -93,8 +93,8 @@ Step Plan 目录：`step-5-preview`（1M，文本 + 图像，自动思考）、`
 
 未变化的已组装前缀有资格复用供应商缓存。确定性的请求图像字节并不使整个前缀不可变：执行环境路径变化会改写历史描述文本，卸载决策也会在后续轮次把图像部分替换为占位文本。
 
-<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - 未实现 Anthropic 兼容的 `/step_plan` Messages 协议；Step Plan 通道走 OpenAI 兼容的 `/step_plan/v1` 根。
 - 无 Files API：chat 图像以 base64 data-URL 内联，受路由预算约束。

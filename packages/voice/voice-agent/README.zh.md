@@ -80,8 +80,8 @@ kind: "package-reference"
 
 语音来源的轮次复用 agent 的普通前缀；本桥既不改变请求组装，也不改变历史字节。
 
-<a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - 一次会话恰好绑定一个 Agent 与一条 realtime 会话；多说话人或并发会话不在范围内。
 - 字幕增量只流式输出该轮的组装文本，不含推理块。

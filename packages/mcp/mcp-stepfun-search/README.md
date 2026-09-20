@@ -83,8 +83,8 @@ Indirectly, through the MCP client. The server's own tool schemas, instructions,
 
 Tool results enter the conversation like any other tool output; an unchanged prefix including prior search results stays cache-eligible.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - Requires a Step Plan subscription; without one the initial connection fails and the supervisor's reconnect budget runs out, leaving the tools absent until restart.
 - The bearer key resolves once at load; rotation needs a restart or an HMR reload, and the key travels inside the child's static header set.

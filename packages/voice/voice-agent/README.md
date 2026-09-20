@@ -80,8 +80,8 @@ Indirectly, through the agent loop. A finalized transcript becomes an ordinary u
 
 Voice-originated turns reuse the agent's ordinary prefix; the bridge changes neither request assembly nor historical bytes.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - One conversation binds exactly one Agent and one realtime session; multiple simultaneous speakers or sessions are out of scope.
 - Caption deltas stream the assembled turn text without reasoning blocks.
