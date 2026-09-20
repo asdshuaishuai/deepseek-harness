@@ -34,14 +34,8 @@
     - id: llm
       name: '@deepseek-ai/dsh-llm'
 
-    - id: deepseek-llm-api-extensions
-      name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'
-
     - id: session
       name: '@deepseek-ai/dsh-session'
-
-    - id: session-log-deepseek
-      name: '@deepseek-ai/dsh-session-log-deepseek'
 
     - id: typert
       name: '@deepseek-ai/dsh-typert-registry'
@@ -74,16 +68,14 @@
     - id: agent
       name: '@deepseek-ai/dsh-agent'
 
-    - id: plugin-package-inventory-deepseek
-      name: '@deepseek-ai/dsh-plugin-package-inventory-deepseek'
-
     # The transport-independent default for Agents created by entry points.
     # Settings may supply a saved selection; consumers read it at creation time.
+    # This composition is StepFun-only: step-5-preview is the main model.
     - id: agent-default-model
       name: '@deepseek-ai/dsh-agent-default-model'
       config:
-        provider: deepseek-official
-        model: deepseek-flash
+        provider: stepfun-official
+        model: step-5-preview
 
     - id: jobs
       name: '@deepseek-ai/dsh-jobs-local'
@@ -92,8 +84,8 @@
       name: '@deepseek-ai/dsh-llm-retry'
 
     # User-settings document (`$DSH_HOME/settings.yaml`, hot-reloaded): a
-    # `llm-deepseek:` or `llm-pi-ai:` section there overrides the adapter entries
-    # below without a restart, and is what the web Models page writes.
+    # `llm-stepfun:` section there overrides the adapter entry below without a
+    # restart, and is what the web Models page writes.
     - id: settings
       name: '@deepseek-ai/dsh-settings-file'
 
@@ -103,16 +95,6 @@
     # managed document, which is never materialized into the process environment.
     - id: credentials
       name: '@deepseek-ai/dsh-credentials-local'
-
-    # The pi-ai multi-provider twin, mounted dormant: zero routes (and no extra
-    # models in the picker) until a `llm-pi-ai:` settings section supplies provider
-    # profiles — then those routes register live, keys resolving per request
-    # through their apiKeyEnv references, and drop again when the section empties.
-    # Supplying those profiles is exactly what the web Models page does. Which
-    # adapters exist is composition; which providers run is the user's settings
-    # document.
-    - id: llm-pi-ai
-      name: '@deepseek-ai/dsh-llm-pi-ai'
 
     - id: session-persistence-jsonl
       name: '@deepseek-ai/dsh-session-persistence-jsonl'
@@ -172,24 +154,13 @@
         writeEveryEvents: 200
         writeIntervalMs: 5000
 
-    # OTel releases a Session-log prefix only after explicit user feedback,
-    # regardless of model provider. Ordinary activity never triggers capture.
-    # DSH_TELEMETRY_OTLP_URL overrides the production endpoint. A non-empty
-    # DSH_TELEMETRY_DISABLED — any value, including '0'/'false' — opts the
-    # process out (the launchers patch the row disabled; config cannot disable
-    # a row). Exports carry the harness home's anonymous user id ($DSH_HOME/.anonymous-user-id,
-    # random UUID; delete the file to reset the identity) as the Resource's
-    # user.id. The exporter/processor values normally bound the shutdown drain
-    # to ~1s against an unreachable collector: exporter.timeoutMillis is both
-    # the per-attempt socket timeout and the retry deadline (1s effectively
-    # disables the SDK's 5-try backoff), while maxExportBatchSize == maxQueueSize
-    # (both explicit) makes the drain a single batch. The SDK awaits
-    # exporter.forceFlush() outside exportTimeoutMillis, so the backend's 3s
-    # shutdownTimeoutMillis is the load-bearing outer bound when a transport
-    # promise never settles. Every CLI exit path drains it by disposing the root
-    # on SIGINT/SIGTERM.
+    # OTel is switched off in this StepFun-only composition: the upstream
+    # exporter endpoint is an external service this fork does not ship. A
+    # deployment wanting telemetry re-enables the row through a later patch
+    # layer with its own endpoint.
     - id: session-telemetry-otel
       name: '@deepseek-ai/dsh-session-telemetry-otel'
+      disabled: true
       config:
         mode: !!js process.env.DSH_TELEMETRY_MODE || 'FEEDBACK_ONLY'
         shutdownTimeoutMillis: 3000
@@ -444,27 +415,16 @@
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
 
-    # The shared base enables the stable model-facing web_search and web_fetch
-    # tools. The Web app disables this host row and composes both tools per agent
-    # preset; products with a stricter network policy override tool-web. DeepSeek
-    # search resolves the same DEEPSEEK_API_KEY
-    # credential the Models page manages for chat, at each search; its Messages
-    # endpoint is separate from the chat-completions endpoint, so it takes its own
-    # base-URL override. Anonymous fetch accepts only public HTTP(S) destinations,
-    # resolves and validates every destination, and pins every actual connection.
-    # Search is a full auxiliary model request with server-side retrieval, so this
-    # shipped DeepSeek route gets 60s while the provider-neutral tool default
-    # remains 30s.
+    # The shared base enables the stable model-facing web_fetch tool over the
+    # provider-neutral HTTP fetcher. Web search reaches the model through the
+    # platform's own MCP below (StepSearch's `mcp__stepfun-search__web_search`),
+    # so the seam-level `web_search` tool stays unregistered and the tool row
+    # keeps `search` off; a deployment with a seam-level search provider
+    # registers it and flips `search` back on.
     - id: web
       name: '@deepseek-ai/dsh-web'
       config:
-        searchProvider: deepseek-official
         fetchProvider: http
-
-    - id: web-search-deepseek
-      name: '@deepseek-ai/dsh-web-search-deepseek'
-      config:
-        apiKeyEnv: DEEPSEEK_API_KEY
 
     - id: web-fetch-http
       name: '@deepseek-ai/dsh-web-fetch-http'
@@ -473,10 +433,19 @@
       name: '@deepseek-ai/dsh-tool-web'
       config:
         fetch: true
-        searchTimeoutMs: 60000
+        search: false
 
     - id: mcp-resources
       name: '@deepseek-ai/dsh-mcp-resources'
+
+    # StepFun's default MCP: the official StepSearch server (web_search +
+    # web_fetch) over Streamable HTTP, billed through the Step Plan
+    # subscription. No config inlines a key: the mount resolves
+    # $STEPFUN_API_KEY once at load from the credentials service or the
+    # environment, and without a key the tools stay unmounted while the rest
+    # of the composition boots. Requires a Step Plan subscription.
+    - id: stepfun-search-mcp
+      name: '@deepseek-ai/dsh-mcp-stepfun-search'
 
     # ── rows every mode mounts, whose values each overlay may state ──────────────
 
@@ -504,9 +473,12 @@
     - id: fs-sandbox
       name: '@deepseek-ai/dsh-fs-sandbox'
 
-    # The native DeepSeek adapter. No key or endpoint is inlined: both resolve per
-    # request from the `llm-deepseek:` settings section over this entry, with the
-    # key coming from the credential store below. Thinking defaults are a deployment
-    # choice.
-    - id: llm-deepseek
-      name: '@deepseek-ai/dsh-llm-deepseek'
+    # The native StepFun adapter. No key or endpoint is inlined: both resolve
+    # per request from the `llm-stepfun:` settings section over this entry,
+    # with the key coming from the credential store above and the endpoint
+    # validated as a public HTTP(S) root at configuration resolution. Setting
+    # `channel: step-plan` in that section (or a patch layer) moves chat to
+    # the Step Plan subscription endpoint and swaps the advisory catalog to
+    # the flash family and the router.
+    - id: llm-stepfun
+      name: '@deepseek-ai/dsh-llm-stepfun'

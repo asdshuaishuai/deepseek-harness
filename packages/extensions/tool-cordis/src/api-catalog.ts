@@ -2471,6 +2471,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'stepfunRealtime',
+    summary: 'The service exposed as `ctx.stepfunRealtime`.',
+    description: 'The service exposed as `ctx.stepfunRealtime`.',
+    methods: [
+      {
+        signature: 'readonly options: ResolvedRealtimeOptions',
+        description: 'The current validated connection facts.',
+        parameters: [],
+      },
+      {
+        signature: 'createSession( overrides: { voice?: string; instructions?: string }, events: RealtimeSessionEvents, ): Promise<RealtimeSession>',
+        description: 'Open one duplex voice session.',
+        parameters: [{ name: 'overrides', description: 'per-session voice and instructions over the plugin config.' }, { name: 'events', description: 'typed callbacks for the session\'s lifetime.' }],
+        returns: 'the opened session; rejects when no key is available or the handshake fails.',
+      },
+    ],
+  },
+  {
     key: 'storage',
     summary: 'The storage hub service.',
     description: 'The storage hub service. Backends register under `backend`; data forms mount under their `StorageForms` key and are reached as `ctx.storage.<form>`.',
@@ -3086,6 +3104,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'request', description: 'Questions, owner agent, and abort signal.' }],
         returns: 'The answer chosen or typed by the human.',
         throws: ['{UserQuestionError} code `ASK_ABORTED` when the supplied signal is already or becomes aborted, `CALLER_NOT_LIVE` when a supplied agent is not the registry\'s exact live instance, or `DELEGATED_CALLER` when that live agent is owned by another agent.'],
+      },
+    ],
+  },
+  {
+    key: 'voiceAgent',
+    summary: 'The service exposed as `ctx.voiceAgent`.',
+    description: 'The service exposed as `ctx.voiceAgent`.',
+    methods: [
+      {
+        signature: 'createConversation( options: CreateConversationOptions, events: VoiceConversationEvents, ): Promise<VoiceConversation>',
+        description: 'Start one duplex voice conversation.',
+        parameters: [{ name: 'options', description: 'session identity and voice overrides.' }, { name: 'events', description: 'consumer callbacks for the conversation\'s lifetime.' }],
+        returns: 'the started conversation.',
       },
     ],
   },
@@ -4485,6 +4516,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly parentAgent?: Agent;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly isSeeded?: boolean;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
+    name: 'CreateConversationOptions',
+    declaration: 'export interface CreateConversationOptions {\n    sessionId?: string;\n    realtime?: {\n        voice?: string;\n        instructions?: string;\n    };\n}',
+  },
+  {
     name: 'CreateGoalRequest',
     declaration: 'export interface CreateGoalRequest {\n    readonly objective: string;\n    readonly maxGoalRounds?: number;\n}',
   },
@@ -5485,6 +5520,38 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ReadResultView {\n    card: \'read\';\n    title?: string;\n    path: string;\n    offset: number;\n    lines: ReadFileLine[];\n    totalLines: number;\n    lang?: string;\n    content?: ContentBlock[];\n}',
   },
   {
+    name: 'RealtimeConnectOptions',
+    declaration: 'export interface RealtimeConnectOptions {\n    url: string;\n    authorization: string;\n}',
+  },
+  {
+    name: 'RealtimeErrorEvent',
+    declaration: 'export interface RealtimeErrorEvent {\n    type: \'error\';\n    error: RealtimeErrorPayload;\n}',
+  },
+  {
+    name: 'RealtimeErrorPayload',
+    declaration: 'export interface RealtimeErrorPayload {\n    type?: string;\n    code?: string;\n    message?: string;\n}',
+  },
+  {
+    name: 'RealtimeSession',
+    declaration: 'export class RealtimeSession {\n    constructor(options: RealtimeSessionOptions, events: RealtimeSessionEvents);\n    open(): Promise<void>;\n    appendAudio(base64: string): void;\n    commit(): void;\n    clearInput(): void;\n    speak(text: string, instructions?: string): void;\n    cancelResponse(): void;\n    close(): void;\n}',
+  },
+  {
+    name: 'RealtimeSessionEvents',
+    declaration: 'export interface RealtimeSessionEvents {\n    onSpeechStarted?: (event: {\n        audioStartMs: number;\n    }) => void;\n    onSpeechStopped?: (event: {\n        audioEndMs: number;\n    }) => void;\n    onUserTranscript?: (transcript: string) => void;\n    onUserTranscriptFailed?: (error: {\n        message: string;\n    }) => void;\n    onAssistantTranscriptDelta?: (delta: string) => void;\n    onAssistantAudioDelta?: (delta: string) => void;\n    onResponseDone?: () => void;\n    onResponseCancelled?: () => void;\n    onError?: ((error: RealtimeErrorEvent[\'error\']) => void) | undefined;\n    onClose?: ((event: {\n        code: number;\n        reason: string;\n    }) => void) | undefined;\n}',
+  },
+  {
+    name: 'RealtimeSessionOptions',
+    declaration: 'export interface RealtimeSessionOptions extends RealtimeConnectOptions {\n    voice?: string;\n    instructions?: string;\n    connectTimeoutMs: number;\n    transport: RealtimeTransportFactory;\n}',
+  },
+  {
+    name: 'RealtimeTransport',
+    declaration: 'export interface RealtimeTransport {\n    send(frame: string): void;\n    close(code?: number, reason?: string): void;\n    onFrame(listener: (frame: string) => void): void;\n    onClose(listener: (code: number, reason: string) => void): void;\n    onError(listener: (error: unknown) => void): void;\n}',
+  },
+  {
+    name: 'RealtimeTransportFactory',
+    declaration: 'export type RealtimeTransportFactory = (options: RealtimeConnectOptions) => RealtimeTransport;',
+  },
+  {
     name: 'ReasoningBlock',
     declaration: 'export interface ReasoningBlock {\n    type: \'reasoning\';\n    text: string;\n}',
   },
@@ -5555,6 +5622,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ResolvedNormalRetryPolicy',
     declaration: 'export interface ResolvedNormalRetryPolicy extends ResolvedRetryBackoff {\n    readonly mode: \'normal\';\n    readonly maxRetries: number;\n    readonly retryableCodes: readonly string[];\n}',
+  },
+  {
+    name: 'ResolvedRealtimeOptions',
+    declaration: 'export interface ResolvedRealtimeOptions {\n    readonly baseURL: string;\n    readonly model: string;\n    readonly apiKeyEnv: CredentialRef;\n    readonly connectTimeoutMs: number;\n}',
   },
   {
     name: 'ResolvedRetryBackoff',
@@ -6931,6 +7002,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'VerifiedWebhookDelivery',
     declaration: 'export interface VerifiedWebhookDelivery<K extends string = string> {\n    readonly kind: K;\n    readonly source: WebhookSourceId;\n    readonly deliveryId: WebhookDeliveryId;\n    readonly event: WebhookEventOf<K>;\n    readonly receivedAt: number;\n}',
+  },
+  {
+    name: 'VoiceConversation',
+    declaration: 'export class VoiceConversation {\n    static async start(deps: VoiceConversationDeps, events: VoiceConversationEvents): Promise<VoiceConversation>;\n    get id(): SessionId;\n    get currentState(): VoiceState;\n    sendAudio(base64: string): void;\n    commitUtterance(): void;\n    async close(): Promise<void>;\n}',
+  },
+  {
+    name: 'VoiceConversationDeps',
+    declaration: 'export interface VoiceConversationDeps {\n    ctx: Context;\n    sessionId?: string;\n    realtime: {\n        voice?: string;\n        instructions?: string;\n    };\n}',
+  },
+  {
+    name: 'VoiceConversationEvents',
+    declaration: 'export interface VoiceConversationEvents {\n    onState?: (state: VoiceState) => void;\n    onUserTranscript?: (text: string) => void;\n    onAssistantDelta?: (delta: string) => void;\n    onAssistantFinal?: (text: string) => void;\n    onAudio?: (base64: string) => void;\n    onError?: (message: string) => void;\n    onClose?: (event: {\n        code: number;\n        reason: string;\n    }) => void;\n}',
+  },
+  {
+    name: 'VoiceState',
+    declaration: 'export type VoiceState = \'listening\' | \'thinking\' | \'speaking\';',
   },
   {
     name: 'WebBootBatch',

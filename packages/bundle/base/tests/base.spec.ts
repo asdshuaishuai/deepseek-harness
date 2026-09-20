@@ -32,7 +32,9 @@ describe('dsh-base bundle', () => {
     )
     expect(rows.length).toBeGreaterThan(50)
     expect(rows.some(row => row.id === 'agent-loop')).toBe(true)
-    expect(rows.find(row => row.id === 'session-telemetry-otel')?.disabled).toBeUndefined()
+    // This composition is StepFun-only: the upstream telemetry exporter is an
+    // external service this fork does not ship, so the row mounts disabled.
+    expect(rows.find(row => row.id === 'session-telemetry-otel')?.disabled).toBe(true)
     expect(rows.find(row => row.id === 'session-telemetry-otel')?.config?.['mode']).toEqual({
       __jsExpr: "process.env.DSH_TELEMETRY_MODE || 'FEEDBACK_ONLY'",
     })
@@ -41,11 +43,31 @@ describe('dsh-base bundle', () => {
     })
     expect(rows.filter(row => row.id === 'subagent-codex')).toHaveLength(0)
     expect(rows.filter(row => row.id === 'subagent-claude-code')).toHaveLength(0)
+    // The StepFun-only composition: the DeepSeek adapter rows are unmounted
+    // and only the StepFun adapter remains.
+    expect(rows.filter(row => row.id === 'llm-deepseek')).toHaveLength(0)
+    expect(rows.filter(row => row.id === 'llm-pi-ai')).toHaveLength(0)
+    expect(rows.filter(row => row.id === 'web-search-deepseek')).toHaveLength(0)
+    expect(rows.find(row => row.id === 'llm-stepfun')).toBeDefined()
+    expect(rows.find(row => row.id === 'agent-default-model')?.config).toMatchObject({
+      provider: 'stepfun-official',
+      model: 'step-5-preview',
+    })
     expect(rows.find(row => row.id === 'web')?.config).toMatchObject({ fetchProvider: 'http' })
     expect(rows.find(row => row.id === 'web-fetch-http')).toBeDefined()
-    expect(rows.find(row => row.id === 'tool-web')?.config).toMatchObject({ fetch: true })
+    expect(rows.find(row => row.id === 'tool-web')?.config).toMatchObject({ fetch: true, search: false })
+    // StepFun's default MCP mounts by default: the official StepSearch server
+    // (web_search + web_fetch over Streamable HTTP, Step Plan billing) with
+    // no inlined key — the mount resolves the credential itself.
+    expect(rows.find(row => row.id === 'stepfun-search-mcp')).toMatchObject({
+      name: '@deepseek-ai/dsh-mcp-stepfun-search',
+    })
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-mcp-stepfun-search')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-codex')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-claude-code')
+    expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-llm-deepseek')
+    expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-llm-pi-ai')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-llm-stepfun')
     expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-web-fetch-http')
   })
 

@@ -130,6 +130,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   web: 'web.md',
   workflowEngine: 'workflow.md',
   webhookRuntime: 'webhook.md',
+  stepfunRealtime: 'voice.md',
+  voiceAgent: 'voice.md',
   workspaceRegistry: 'workspace.md',
   workspaceController: 'workspace.md',
   workspaceFiles: 'workspace.md',
@@ -840,6 +842,11 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   TerminalFrame: 'Browser terminal stream frames are owned by packages/api/terminal-controller/README.md',
   TerminalRetentionFrame: 'Browser terminal window holds are owned by packages/api/terminal-controller/README.md',
   WebTerminalId: 'Browser terminal identity is owned by packages/api/terminal-controller/README.md',
+  RealtimeSession: 'duplex voice session is owned by packages/voice/stepfun-realtime/README.md',
+  RealtimeSessionEvents: 'session callback vocabulary is owned by packages/voice/stepfun-realtime/README.md',
+  VoiceConversation: 'duplex voice conversation is owned by packages/voice/voice-agent/README.md',
+  VoiceConversationEvents: 'conversation callback vocabulary is owned by packages/voice/voice-agent/README.md',
+  CreateConversationOptions: 'conversation construction fields are owned by packages/voice/voice-agent/README.md',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

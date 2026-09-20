@@ -318,6 +318,9 @@ describe('loadProfile', () => {
     expect(PROFILE_TEMPLATES.sdk).toEqual({
       bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-sdk-app'],
     })
+    expect(PROFILE_TEMPLATES.voice).toEqual({
+      bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-voice-app'],
+    })
     expect(PROFILE_TEMPLATES['sdk-minimal']).toEqual({
       bundles: ['@deepseek-ai/dsh-sdk-minimal'],
     })

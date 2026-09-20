@@ -1,0 +1,56 @@
+# The dsh-voice bundle patch: a duplex voice conversation directly over dsh-base.
+# It mounts no Host, HTTP server, Web runtime, or browser plugin. The startup
+# plugin parses `--session-id` and `--voice` from the ordinary cmdlineArgs
+# provider; the runner binds one StepAudio 3 Realtime session to one Agent
+# (the configured main model) and speaks the stdio JSON-frame bridge — the
+# driver process owns the audio devices and pipes base64 PCM16 frames both
+# ways.
+
+- id: system-prompt
+  config:
+    personaSuffix: Your working directory is {{cwd}}.
+    personaPrefix: >-
+      You are a coding agent powered by the {{model}} model, speaking with the
+      user over a voice channel. Answers are read aloud: keep them short and
+      plain-spoken, avoid tables and code fences unless asked, and never
+      read identifiers character by character.
+
+- id: tools
+  config:
+    # Keep the same temporary process-wide PTC mode opt-in as the Web surface.
+    mode: !!js process.env.DSH_TOOLS_MODE
+
+- insert:
+    - id: voice-startup
+      name: '@deepseek-ai/dsh-voice-app/startup'
+
+    - id: stepfun-realtime
+      name: '@deepseek-ai/dsh-stepfun-realtime'
+      inject: [voiceStartup]
+      config:
+        voice: !!js ctx.voiceStartup?.voice
+        channel: !!js "ctx.voiceStartup?.stepPlan ? 'step-plan' : 'standard'"
+        model: !!js ctx.voiceStartup?.realtimeModel
+
+    - id: voice-agent
+      name: '@deepseek-ai/dsh-voice-agent'
+      inject: [voiceStartup]
+      config:
+        voice: !!js ctx.voiceStartup?.voice
+
+    # Reads its run options from the ordinary voiceStartup provider.
+    - id: voice-runner
+      name: '@deepseek-ai/dsh-voice-app'
+      inject: [voiceStartup]
+
+# One switch for the whole voice profile: --step-plan moves the agent's chat
+# requests (llm-stepfun below) and the realtime session onto the Step Plan
+# subscription endpoints. A settings `llm-stepfun:` section still overlays
+# this row; without --step-plan the row restates the base default.
+- id: llm-stepfun
+  inject: [voiceStartup]
+  config:
+    channel: !!js "ctx.voiceStartup?.stepPlan ? 'step-plan' : 'standard'"
+
+- id: hmr
+  disabled: true
