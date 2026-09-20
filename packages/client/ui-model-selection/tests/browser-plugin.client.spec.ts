@@ -30,7 +30,7 @@ const GROUPS = [{
     {
       id: 'step-5-preview',
       name: 'Step 5 Preview',
-      description: 'Flagship agentic model: text and image input, 1M-token context, automatic thinking, strong tool use.',
+      description: 'Flagship agentic model: text and image input, 1M-token context, selectable reasoning efforts, strong tool use.',
       reasoning: {
         efforts: [
           { id: 'off', name: 'Off' },
@@ -224,7 +224,7 @@ describe('ui-model-selection dual entry', () => {
     ])
     expect(options[0]).toMatchObject({
       active: true,
-      detail: 'StepFun · 旗舰智能体模型：支持文本与图像输入、100 万 token 上下文、自动思考，工具调用能力强。',
+      detail: 'StepFun · 旗舰智能体模型：支持文本与图像输入、100 万 token 上下文、可选推理强度，工具调用能力强。',
     })
     expect(options[1]?.detail)
       .toBe('StepFun · 纯文本通用模型，适合更轻量或对成本更敏感的对话。')
@@ -237,7 +237,7 @@ describe('ui-model-selection dual entry', () => {
     b.mint('s1')
     const options = await b.popup().options(projection('s1'), new AbortController().signal)
     expect(options[0]?.detail)
-      .toBe('StepFun · Flagship agentic model: text and image input, 1M-token context, automatic thinking, strong tool use.')
+      .toBe('StepFun · Flagship agentic model: text and image input, 1M-token context, selectable reasoning efforts, strong tool use.')
     expect(options[1]?.detail)
       .toBe('StepFun · Text-only general model for lighter or cost-sensitive turns.')
   })

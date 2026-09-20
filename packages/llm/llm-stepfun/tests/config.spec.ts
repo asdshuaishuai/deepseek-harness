@@ -98,12 +98,13 @@ describe('resolveAdapterOptions', () => {
     })).toThrow(/must not contain duplicates/)
   })
 
-  it('keeps the plan flash family efforts: 3.7 low/medium/high, 2603 low/high', () => {
+  it('keeps the documented efforts: flagship and 3.7 low/medium/high, 2603 low/high', () => {
     const byId = new Map(STEP_PLAN_MODELS.map(model => [model.id, model]))
+    expect(byId.get('step-5-preview')?.reasoningEfforts).toEqual(['low', 'medium', 'high'])
     expect(byId.get('step-3.7-flash')?.reasoningEfforts).toEqual(['low', 'medium', 'high'])
     expect(byId.get('step-3.5-flash-2603')?.reasoningEfforts).toEqual(['low', 'high'])
-    expect(byId.get('step-5-preview')?.reasoningEfforts).toBeUndefined()
     expect(byId.get('step-3.5-flash')?.reasoningEfforts).toBeUndefined()
+    expect(byId.get('step-router-v1')?.reasoningEfforts).toBeUndefined()
   })
 
   it('fills image-capable entries with the per-image byte default', () => {
@@ -113,8 +114,12 @@ describe('resolveAdapterOptions', () => {
     expect(resolved.models[0]).toMatchObject({ id: 'step-5-preview', imageMaxBytes: 10 * 1024 * 1024 })
   })
 
-  it('keeps the shipped catalog present and image-capable for the flagship', () => {
+  it('keeps the shipped catalog present, image-capable, and effort-selectable for the flagship', () => {
     const flagship = DEFAULT_MODELS.find(model => model.id === 'step-5-preview')
-    expect(flagship).toMatchObject({ contextWindow: 1_000_000, inputModalities: ['text', 'image'] })
+    expect(flagship).toMatchObject({
+      contextWindow: 1_000_000,
+      inputModalities: ['text', 'image'],
+      reasoningEfforts: ['low', 'medium', 'high'],
+    })
   })
 })

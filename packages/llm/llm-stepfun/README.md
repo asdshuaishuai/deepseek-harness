@@ -1,5 +1,5 @@
 ---
-description: "The StepFun chat-completions adapter (step-5-preview flagship, Step Plan subscription channel, reasoning efforts on the flash family) with per-request credentials and public-endpoint validation."
+description: "The StepFun chat-completions adapter (step-5-preview flagship with selectable reasoning efforts, Step Plan subscription channel) with per-request credentials and public-endpoint validation."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Run agent turns on StepFun's OpenAI-compatible Chat Completions API: `step-5-preview` with text and image input over a 1M-token context and automatic thinking, plus the Step Plan subscription channel's flash family with selectable reasoning efforts. Endpoint, credential, and catalog resolve per request from the `llm-stepfun:` settings section; the endpoint is validated as a public HTTP(S) root before any request. Images inline as base64 data-URL parts under route byte and count budgets.
+Run agent turns on StepFun's OpenAI-compatible Chat Completions API: `step-5-preview` with text and image input over a 1M-token context and selectable reasoning efforts (`low`/`medium`/`high` via `reasoning_effort`), plus the Step Plan subscription channel's flash family. Endpoint, credential, and catalog resolve per request from the `llm-stepfun:` settings section; the endpoint is validated as a public HTTP(S) root before any request. Images inline as base64 data-URL parts under route byte and count budgets.
 
 ## Table of Contents
 
@@ -48,7 +48,7 @@ Choose it for the StepFun platform — standard open-platform billing by default
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-llm-stepfun) is the exhaustive source for every accepted field.
 
-The Step Plan catalog: `step-5-preview` (1M, text + image, automatic thinking), `step-3.7-flash` (256K, text + image, efforts `low`/`medium`/`high`), `step-3.5-flash`, `step-3.5-flash-2603` (efforts `low`/`high`), and `step-router-v1`, which routes each turn to `step-5-preview` or `step-3.5-flash` by task complexity.
+The Step Plan catalog: `step-5-preview` (1M, text + image, efforts `low`/`medium`/`high`), `step-3.7-flash` (256K, text + image, efforts `low`/`medium`/`high`), `step-3.5-flash`, `step-3.5-flash-2603` (efforts `low`/`high`), and `step-router-v1`, which routes each turn to `step-5-preview` or `step-3.5-flash` by task complexity.
 
 -----
 
@@ -83,7 +83,7 @@ None.
 
 #### What the model sees
 
-The selected StepFun model receives the harness system prompt, message history, tool schemas, stop sequences, and call config (`maxTokens`, `reasoningEffort`, `temperature`) without adapter-authored prompt prose. Reasoning surfaces as `reasoning` blocks from `reasoning_content` deltas; the request carries no thinking toggle — thinking is automatic on the Step 5 family, and a selected effort on the flash family serializes as `reasoning_effort`. Image-capable models receive retained user and tool-result images as base64 data-URL parts beside attachment handles and request-preview dimensions, with offloaded occurrences replaced by their placeholder text.
+The selected StepFun model receives the harness system prompt, message history, tool schemas, stop sequences, and call config (`maxTokens`, `reasoningEffort`, `temperature`) without adapter-authored prompt prose. Reasoning surfaces as `reasoning` blocks from `reasoning_content` deltas; the request carries no thinking toggle — a selected effort serializes as `reasoning_effort`, and models without cataloged efforts leave the field off entirely. Image-capable models receive retained user and tool-result images as base64 data-URL parts beside attachment handles and request-preview dimensions, with offloaded occurrences replaced by their placeholder text.
 
 #### Token effect
 
@@ -98,6 +98,6 @@ An unchanged assembled prefix is eligible for provider cache reuse. Deterministi
 
 - The Anthropic-compatible `/step_plan` Messages protocol is not implemented; the Step Plan channel rides the OpenAI-compatible `/step_plan/v1` root.
 - No Files API: chat images inline as base64 data-URL parts under route budgets.
-- The Step 5 family exposes no selectable reasoning efforts; the request never carries thinking fields for them.
+- Chat input ships text and images only: the platform also accepts video input (URL, base64, or Files API references), which the harness attachment pipeline does not carry yet.
 
 These limits define where the adapter stops and future work begins. They are current package constraints, not a general StepFun comparison or a task backlog.

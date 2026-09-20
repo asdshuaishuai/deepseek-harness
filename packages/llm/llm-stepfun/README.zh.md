@@ -1,5 +1,5 @@
 ---
-description: "StepFun chat-completions 适配器（step-5-preview 主力、Step Plan 订阅通道、flash 系列可选推理力度），逐请求解析凭据并校验公网端点。"
+description: "StepFun chat-completions 适配器（step-5-preview 主力，支持可选推理力度；Step Plan 订阅通道），逐请求解析凭据并校验公网端点。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-在 StepFun 的 OpenAI 兼容 Chat Completions API 上运行 agent 轮次：`step-5-preview` 支持文本与图像输入、1M token 上下文与自动思考；Step Plan 订阅通道提供 flash 系列与可选推理力度。端点、凭据与模型目录逐请求从 `llm-stepfun:` 设置分节解析；端点在任何请求前都会先通过公网 HTTP(S) 根校验。图像以内联 base64 data-URL 形式发送，受路由字节与数量预算约束。
+在 StepFun 的 OpenAI 兼容 Chat Completions API 上运行 agent 轮次：`step-5-preview` 支持文本与图像输入、1M token 上下文与可选推理力度（通过 `reasoning_effort` 设定 `low`/`medium`/`high`）；Step Plan 订阅通道提供 flash 系列。端点、凭据与模型目录逐请求从 `llm-stepfun:` 设置分节解析；端点在任何请求前都会先通过公网 HTTP(S) 根校验。图像以内联 base64 data-URL 形式发送，受路由字节与数量预算约束。
 
 ## 目录
 
@@ -48,7 +48,7 @@ kind: "package-reference"
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-stepfun)是所有受支持字段的完整参考。
 
-Step Plan 目录：`step-5-preview`（1M，文本 + 图像，自动思考）、`step-3.7-flash`（256K，文本 + 图像，力度 `low`/`medium`/`high`）、`step-3.5-flash`、`step-3.5-flash-2603`（力度 `low`/`high`）与 `step-router-v1`（按任务复杂度把每一轮路由给 `step-5-preview` 或 `step-3.5-flash`）。
+Step Plan 目录：`step-5-preview`（1M，文本 + 图像，力度 `low`/`medium`/`high`）、`step-3.7-flash`（256K，文本 + 图像，力度 `low`/`medium`/`high`）、`step-3.5-flash`、`step-3.5-flash-2603`（力度 `low`/`high`）与 `step-router-v1`（按任务复杂度把每一轮路由给 `step-5-preview` 或 `step-3.5-flash`）。
 
 -----
 
@@ -83,7 +83,7 @@ Step Plan 目录：`step-5-preview`（1M，文本 + 图像，自动思考）、`
 
 #### What the model sees
 
-选定的 StepFun 模型收到 harness 系统提示、消息历史、工具 schema、停止序列与调用配置（`maxTokens`、`reasoningEffort`、`temperature`），不含适配器自撰的提示文本。推理以 `reasoning_content` 增量产出的 `reasoning` 块呈现；请求不携带思考开关——Step 5 系列为自动思考，flash 系列选定的力度序列化为 `reasoning_effort`。支持图像的模型收到保留的用户与工具结果图像（base64 data-URL，附 attachment 句柄与请求预览尺寸），被卸载的出现替换为占位文本。
+选定的 StepFun 模型收到 harness 系统提示、消息历史、工具 schema、停止序列与调用配置（`maxTokens`、`reasoningEffort`、`temperature`），不含适配器自撰的提示文本。推理以 `reasoning_content` 增量产出的 `reasoning` 块呈现；请求不携带思考开关——选定的力度序列化为 `reasoning_effort`，没有目录力度的模型完全不带该字段。支持图像的模型收到保留的用户与工具结果图像（base64 data-URL，附 attachment 句柄与请求预览尺寸），被卸载的出现替换为占位文本。
 
 #### Token effect
 
@@ -98,6 +98,6 @@ Step Plan 目录：`step-5-preview`（1M，文本 + 图像，自动思考）、`
 
 - 未实现 Anthropic 兼容的 `/step_plan` Messages 协议；Step Plan 通道走 OpenAI 兼容的 `/step_plan/v1` 根。
 - 无 Files API：chat 图像以 base64 data-URL 内联，受路由预算约束。
-- Step 5 系列没有可选推理力度；请求不为其携带思考字段。
+- chat 输入目前仅支持文本与图像：平台还接受视频输入（URL、base64 或 Files API 引用），harness 附件管道尚未承载。
 
 以上划定了适配器的边界与后续工作起点。它们是当前包的约束，不是泛泛的 StepFun 对比或任务清单。

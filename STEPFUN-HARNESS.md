@@ -8,7 +8,7 @@ This branch forks DeepSeek Harness (`dsh`) into a StepFun-only composition: the 
 
 A new `llm-stepfun` adapter speaks the OpenAI-compatible Chat Completions protocol against `https://api.stepfun.com/v1`:
 
-- provider route `stepfun-official`; `step-5-preview` is the default main model (1M-token context, text + image input, automatic thinking surfaced as reasoning blocks), with `step-3` as the text-only catalog fallback;
+- provider route `stepfun-official`; `step-5-preview` is the default main model (1M-token context, text + image input, reasoning surfaced as blocks with selectable efforts `low`/`medium`/`high` serialized as `reasoning_effort`), with `step-3` as the text-only catalog fallback;
 - credentials and endpoint resolve per request (`STEPFUN_API_KEY`, `STEPFUN_BASE_URL`) through the credentials service and the `llm-stepfun:` settings section — the web Models page writes the same section;
 - images inline as base64 data-URL parts with route byte/count budgets and deterministic offload;
 - the endpoint is validated as a public HTTP(S) root at configuration resolution (see [dsh-url-guard](packages/util/url-guard/README.md)): local, loopback, private, and reserved hosts are rejected before any request.
@@ -17,7 +17,7 @@ A new `llm-stepfun` adapter speaks the OpenAI-compatible Chat Completions protoc
 
 Beyond the standard API, the harness speaks the [Step Plan subscription channel](https://platform.stepfun.com/docs/zh/step-plan/overview):
 
-- **Chat** — `channel: step-plan` (config or the `llm-stepfun:` settings section) moves chat to `https://api.stepfun.com/step_plan/v1` and swaps the advisory catalog to the plan family: `step-5-preview`, `step-3.7-flash` (256K, text+image, `reasoning_effort` low/medium/high), `step-3.5-flash`, `step-3.5-flash-2603` (efforts low/high), and `step-router-v1` (complexity routing). Flash efforts serialize as the OpenAI-style `reasoning_effort` field; the Step 5 family keeps automatic thinking.
+- **Chat** — `channel: step-plan` (config or the `llm-stepfun:` settings section) moves chat to `https://api.stepfun.com/step_plan/v1` and swaps the advisory catalog to the plan family: `step-5-preview`, `step-3.7-flash` (256K, text+image, `reasoning_effort` low/medium/high), `step-3.5-flash`, `step-3.5-flash-2603` (efforts low/high), and `step-router-v1` (complexity routing). Efforts serialize as the OpenAI-style `reasoning_effort` field — on the flagship and the flash family alike; models without cataloged efforts leave the field off.
 - **Default MCP** — [`dsh-mcp-stepfun-search`](packages/mcp/mcp-stepfun-search/README.md) mounts StepFun's official **StepSearch** MCP server (`https://api.stepfun.com/step_plan/v1/mcp/web_search/mcp`, Streamable HTTP, Step Plan billing) by default in `dsh-base`. The model gets `mcp__stepfun-search__web_search` and `mcp__stepfun-search__web_fetch`; the bearer key resolves at load from the credentials service or `STEPFUN_API_KEY`, and without a key (or subscription) the tools simply stay unmounted while the composition boots.
 - **Voice under Step Plan** — `dsh --profile voice --step-plan` switches the whole profile in one flag: chat requests and the realtime WebSocket both move to the `step_plan` endpoints, speaking the plan-supported `stepaudio-3-realtime-preview` (the realtime protocol is identical to the open platform's). `--realtime-model` overrides the id explicitly, e.g. `stepaudio-2.5-realtime`.
 

@@ -4,15 +4,18 @@ import type { StepFunCatalogModel } from './types.ts'
 /**
  * Advisory StepFun entries, flagship first: `step-5-preview` is this harness's
  * main model (agentic work with a 1M-token window, native image input, and
- * automatic thinking), `step-3` the text-only fallback.
+ * selectable reasoning efforts), `step-3` the text-only fallback. Modalities
+ * name what this adapter ships: the platform additionally accepts video
+ * input, which the harness's attachment pipeline does not carry yet.
  */
 export const DEFAULT_MODELS: StepFunCatalogModel[] = [
   {
     id: 'step-5-preview',
     name: 'Step 5 Preview',
-    description: 'Flagship agentic model: text and image input, 1M-token context, automatic thinking, strong tool use.',
+    description: 'Flagship agentic model: text and image input, 1M-token context, selectable reasoning efforts, strong tool use.',
     contextWindow: 1_000_000,
     inputModalities: ['text', 'image'],
+    reasoningEfforts: ['low', 'medium', 'high'],
   },
   {
     id: 'step-3',
@@ -29,14 +32,15 @@ export const STEP_PLAN_MODELS: StepFunCatalogModel[] = [
   {
     id: 'step-5-preview',
     name: 'Step 5 Preview',
-    description: 'Flagship agentic model: text and image input, 1M-token context, automatic thinking, strong tool use.',
+    description: 'Flagship agentic model: text and image input, 1M-token context, selectable reasoning efforts, strong tool use.',
     contextWindow: 1_000_000,
     inputModalities: ['text', 'image'],
+    reasoningEfforts: ['low', 'medium', 'high'],
   },
   {
     id: 'step-3.7-flash',
     name: 'Step 3.7 Flash',
-    description: 'Plan-channel multimodal reasoning model: image and video input, 256K context, selectable reasoning efforts.',
+    description: 'Plan-channel multimodal reasoning model: image input, 256K context, selectable reasoning efforts.',
     contextWindow: 262_144,
     inputModalities: ['text', 'image'],
     reasoningEfforts: ['low', 'medium', 'high'],

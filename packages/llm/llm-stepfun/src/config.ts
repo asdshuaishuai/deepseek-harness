@@ -17,6 +17,7 @@ import {
   DEFAULT_REQUEST_IMAGE_MAX_BYTES,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   STEP_PLAN_BASE_URL,
+  DEFAULT_MAX_IMAGES_PER_REQUEST,
 } from './common/defaults.ts'
 
 const DEFAULT_API_KEY_ENV = 'STEPFUN_API_KEY'
@@ -58,7 +59,7 @@ export interface Config {
   streamIdleTimeoutMs?: number
   /** Maximum accumulated base64 image payload per chat request (default 20 MiB). */
   maxRequestImageBytes?: number
-  /** Maximum number of represented images per chat request (default 20). */
+  /** Maximum number of represented images per chat request (default 60, the platform's documented per-request maximum). */
   maxImagesPerRequest?: number
   /** Base64-byte removal step after the request exceeds its byte bound (default 5 MiB). */
   imageOffloadByteQuantum?: number
@@ -91,7 +92,7 @@ export const Config: z<Config> = z.object({
   models: z.array(catalogModel).default(DEFAULT_MODELS),
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_STREAM_IDLE_TIMEOUT_MS),
   maxRequestImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_REQUEST_IMAGE_BYTES),
-  maxImagesPerRequest: z.number().step(1).min(1).default(DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM * 2),
+  maxImagesPerRequest: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGES_PER_REQUEST),
   imageOffloadByteQuantum: z.number().step(1).min(1).default(DEFAULT_IMAGE_OFFLOAD_BYTE_QUANTUM),
   imageOffloadCountQuantum: z.number().step(1).min(1).default(DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM),
   retryPolicy: RetryPolicySchema,
@@ -147,7 +148,7 @@ export function resolveAdapterOptions(
   if (!Number.isSafeInteger(maxRequestImageBytes) || maxRequestImageBytes <= 0) {
     throw new Error('llm-stepfun: maxRequestImageBytes must be a positive safe integer')
   }
-  const maxImagesPerRequest = config.maxImagesPerRequest ?? DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM * 2
+  const maxImagesPerRequest = config.maxImagesPerRequest ?? DEFAULT_MAX_IMAGES_PER_REQUEST
   if (!Number.isSafeInteger(maxImagesPerRequest) || maxImagesPerRequest <= 0) {
     throw new Error('llm-stepfun: maxImagesPerRequest must be a positive safe integer')
   }

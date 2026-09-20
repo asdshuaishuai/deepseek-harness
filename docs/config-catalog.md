@@ -1648,7 +1648,7 @@ export interface Config {
   streamIdleTimeoutMs?: number
   /** Maximum accumulated base64 image payload per chat request (default 20 MiB). */
   maxRequestImageBytes?: number
-  /** Maximum number of represented images per chat request (default 20). */
+  /** Maximum number of represented images per chat request (default 60, the platform's documented per-request maximum). */
   maxImagesPerRequest?: number
   /** Base64-byte removal step after the request exceeds its byte bound (default 5 MiB). */
   imageOffloadByteQuantum?: number
@@ -1693,7 +1693,7 @@ export interface StepFunCatalogModel {
 
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/llm/llm-stepfun/src/config.ts:33`](../packages/llm/llm-stepfun/src/config.ts)
+Source: [`packages/llm/llm-stepfun/src/config.ts:34`](../packages/llm/llm-stepfun/src/config.ts)
 
 <a id="deepseek-aidsh-lsp-stdio"></a>
 

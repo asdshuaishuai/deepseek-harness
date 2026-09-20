@@ -12,6 +12,8 @@ export const DEFAULT_MAX_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
 export const DEFAULT_IMAGE_OFFLOAD_BYTE_QUANTUM = 5 * 1024 * 1024
 /** Deterministic image-count removal step. */
 export const DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM = 10
+/** Default bound on represented images per request (the platform's documented per-request image maximum). */
+export const DEFAULT_MAX_IMAGES_PER_REQUEST = 60
 /** Default per-image encoded-byte cap for image-capable catalog models. */
 export const DEFAULT_REQUEST_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 /** Step Plan subscription channel root for OpenAI-compatible chat requests. */

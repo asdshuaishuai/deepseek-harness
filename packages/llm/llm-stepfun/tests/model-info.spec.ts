@@ -15,9 +15,10 @@ describe('modelInfo', () => {
     expect(info.reasoning?.defaultEffort).toBeUndefined()
   })
 
-  it('keeps thinking automatic for models without cataloged efforts', () => {
+  it('advertises the flagship efforts and keeps uncataloged-effort models automatic', () => {
     const connection = resolveAdapterOptions({})
-    expect(modelInfo(connection, PROVIDER, 'step-5-preview').reasoning).toBeUndefined()
+    expect(modelInfo(connection, PROVIDER, 'step-5-preview').reasoning?.efforts.map(effort => String(effort.id)))
+      .toEqual(['low', 'medium', 'high'])
     expect(modelInfo(connection, PROVIDER, 'step-3').reasoning).toBeUndefined()
   })
 
