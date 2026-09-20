@@ -31,9 +31,15 @@ export interface RealtimeConnectOptions {
 /** Factory shape for {@link RealtimeTransport}; overridable per test. */
 export type RealtimeTransportFactory = (options: RealtimeConnectOptions) => RealtimeTransport
 
-/** Adapter over the global WHATWG WebSocket client. */
+/**
+ * Adapter over the global WHATWG WebSocket client. Sends issued while the
+ * socket is still connecting are buffered and flushed in order on open — the
+ * WHATWG socket throws `InvalidStateError` on a send-while-CONNECTING, and
+ * the session's handshake configuration races the TCP handshake.
+ */
 class WebSocketTransport implements RealtimeTransport {
   private readonly socket: WebSocket
+  private readonly pending: string[] = []
   private frameListener: (frame: string) => void = () => {}
   private closeListener: (code: number, reason: string) => void = () => {}
   private errorListener: (error: unknown) => void = () => {}
@@ -41,6 +47,9 @@ class WebSocketTransport implements RealtimeTransport {
   constructor(options: RealtimeConnectOptions) {
     this.socket = new WebSocket(options.url)
     this.socket.binaryType = 'arraybuffer'
+    this.socket.onopen = () => {
+      for (const frame of this.pending.splice(0)) this.socket.send(frame)
+    }
     this.socket.onmessage = (event: MessageEvent) => {
       const data = typeof event.data === 'string'
         ? event.data
@@ -48,6 +57,7 @@ class WebSocketTransport implements RealtimeTransport {
       this.frameListener(data)
     }
     this.socket.onclose = (event: CloseEvent) => {
+      this.pending.length = 0
       this.closeListener(event.code, event.reason)
     }
     this.socket.onerror = (event: Event) => {
@@ -56,7 +66,15 @@ class WebSocketTransport implements RealtimeTransport {
   }
 
   send(frame: string): void {
-    this.socket.send(frame)
+    if (this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(frame)
+      return
+    }
+    if (this.socket.readyState === WebSocket.CONNECTING) {
+      this.pending.push(frame)
+      return
+    }
+    throw new Error(`StepFun realtime transport is closed (readyState ${this.socket.readyState})`)
   }
 
   close(code?: number, reason?: string): void {

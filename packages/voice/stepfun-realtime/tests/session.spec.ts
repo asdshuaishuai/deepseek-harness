@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ClientEvent, ServerEvent } from '../src/types.ts'
 import { RealtimeSession } from '../src/session.ts'
+import { globalWebSocketTransport } from '../src/transport.ts'
 import type { RealtimeConnectOptions, RealtimeTransport, RealtimeTransportFactory } from '../src/transport.ts'
 
 /** In-process transport double: captures sends, replays injected frames. */
@@ -223,6 +224,105 @@ describe('RealtimeSession steady state', () => {
     session.close()
     expect(transport.closed).toBe(true)
     expect(() => { session.appendAudio('after') }).toThrow(/closed/)
+  })
+})
+
+describe('WebSocketTransport send gating', () => {
+  /** A minimal WebSocket stand-in whose readyState the test drives. */
+  class FakeSocket {
+    static readonly CONNECTING = 0
+    static readonly OPEN = 1
+    static readonly CLOSED = 3
+    static instances: FakeSocket[] = []
+    readyState: number = FakeSocket.CONNECTING
+    binaryType = ''
+    sent: string[] = []
+    onopen: (() => void) | null = null
+    onmessage: ((event: { data: string }) => void) | null = null
+    onclose: ((event: { code: number; reason: string }) => void) | null = null
+    onerror: ((event: Event) => void) | null = null
+    constructor(_url: string) {
+      FakeSocket.instances.push(this)
+    }
+    send(frame: string): void {
+      if (this.readyState !== FakeSocket.OPEN) {
+        throw new DOMException('send while not open', 'InvalidStateError')
+      }
+      this.sent.push(frame)
+    }
+    close(code?: number, reason?: string): void {
+      this.readyState = FakeSocket.CLOSED
+      this.onclose?.({ code: code ?? 1000, reason: reason ?? '' })
+    }
+  }
+
+  it('buffers sends while connecting and flushes them in order on open', () => {
+    FakeSocket.instances = []
+    const previous = globalThis.WebSocket
+    ;(globalThis as { WebSocket: unknown }).WebSocket = FakeSocket
+    try {
+      const transport = globalWebSocketTransport({ url: 'wss://api.stepfun.test/realtime?model=m', authorization: 'Bearer k' })
+      const socket = FakeSocket.instances.at(-1)
+      expect(socket?.readyState).toBe(FakeSocket.CONNECTING)
+      // The handshake configuration races the TCP handshake: buffered, not thrown away.
+      transport.send('config')
+      transport.send('second')
+      expect(socket?.sent).toEqual([])
+      socket!.readyState = FakeSocket.OPEN
+      socket!.onopen?.()
+      expect(socket?.sent).toEqual(['config', 'second'])
+      transport.send('after-open')
+      expect(socket?.sent).toEqual(['config', 'second', 'after-open'])
+    } finally {
+      ;(globalThis as { WebSocket: unknown }).WebSocket = previous
+    }
+  })
+
+  it('fails a send on a dead socket instead of throwing the raw DOMException', () => {
+    FakeSocket.instances = []
+    const previous = globalThis.WebSocket
+    ;(globalThis as { WebSocket: unknown }).WebSocket = FakeSocket
+    try {
+      const transport = globalWebSocketTransport({ url: 'wss://api.stepfun.test/realtime?model=m', authorization: 'Bearer k' })
+      const socket = FakeSocket.instances.at(-1)
+      socket!.readyState = FakeSocket.CLOSED
+      expect(() => { transport.send('late') }).toThrow(/closed/)
+    } finally {
+      ;(globalThis as { WebSocket: unknown }).WebSocket = previous
+    }
+  })
+})
+
+describe('RealtimeSession response lifecycle', () => {
+  it('swallows the trailing response.done after a cancel until the next speak', async () => {
+    const dones: number[] = []
+    const { session, transport } = createSession({ onResponseDone: () => { dones.push(1) } })
+    await openQuietly(session, transport)
+    session.speak('first')
+    transport.deliver({ type: 'response.done' })
+    expect(dones).toHaveLength(1)
+    session.cancelResponse()
+    transport.deliver({ type: 'response.done' })
+    // The cancelled response's trailing done must not settle the next wait.
+    expect(dones).toHaveLength(1)
+    session.speak('second')
+    transport.deliver({ type: 'response.done' })
+    expect(dones).toHaveLength(2)
+    session.close()
+  })
+
+  it('closes a socket whose session.created arrives after a handshake timeout', async () => {
+    const holder: { transport?: FakeTransport } = {}
+    const session = new RealtimeSession({
+      url: 'wss://api.stepfun.test/realtime?model=m',
+      authorization: 'Bearer k',
+      connectTimeoutMs: 10,
+      transport: recordingFactory(holder),
+    }, {})
+    await expect(session.open()).rejects.toThrow(/timed out/)
+    // A late acknowledgment must not resurrect a socket nobody owns.
+    holder.transport?.deliver({ type: 'session.created', session: {} })
+    expect(holder.transport?.closed).toBe(true)
   })
 })
 

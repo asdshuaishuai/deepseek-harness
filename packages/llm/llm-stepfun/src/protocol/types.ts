@@ -69,9 +69,9 @@ export type WireMessage =
   | WireToolMessage
 
 /**
- * Assistant-role history message. The harness replays `content: ""` (never
- * null) on turns that carried text or tool calls; null only when the turn
- * carried neither.
+ * Assistant-role history message. The harness always replays `content` as a
+ * string — `""` on turns that carried neither text nor tool calls — because
+ * endpoints reject null.
  */
 export interface WireAssistantMessage {
   role: 'assistant'

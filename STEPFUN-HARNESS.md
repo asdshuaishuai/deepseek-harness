@@ -37,7 +37,7 @@ pnpm dsh --profile voice                          # JSON-frame bridge on stdin/s
 pnpm dsh --profile voice --voice tongtong         # pick the speaking voice
 pnpm dsh --profile voice --session-id session-…   # resume an existing Session by voice
 pnpm dsh --profile voice --step-plan              # Step Plan endpoints, chat + realtime
-pnpm dsh --profile voice --step-plan --realtime-model stepaudio-3-realtime-preview   # plan default is 2.5; force 3 explicitly
+pnpm dsh --profile voice --realtime-model stepaudio-3-realtime-preview   # standard channel default; the plan channel defaults to stepaudio-2.5-realtime
 ```
 
 ### Web client surfaces follow the fork

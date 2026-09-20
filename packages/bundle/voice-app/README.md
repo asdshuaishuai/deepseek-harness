@@ -48,7 +48,7 @@ ffmpeg -f avfoundation -i ":0" -f s16le -ar 16000 -ac 1 pipe:1 | <feed frames to
 # and play the audio events through: ffplay -nodisp -autoexit -f s16le -ar 24000 -ac 1 -i pipe:0
 ```
 
-`--step-plan` flips both halves in one switch: chat requests go to `https://api.stepfun.com/step_plan/v1` and the realtime session to `wss://api.stepfun.com/step_plan/v1/realtime`, defaulting to the plan-supported `stepaudio-2.5-realtime` (the plan does not list StepAudio 3 Realtime yet). A settings `llm-stepfun:` section still overlays the chat row either way. A settings `llm-stepfun:` section still overlays the chat row either way.
+`--step-plan` flips both halves in one switch: chat requests go to `https://api.stepfun.com/step_plan/v1` and the realtime session to `wss://api.stepfun.com/step_plan/v1/realtime`, defaulting to the plan-supported `stepaudio-2.5-realtime` (the plan does not list StepAudio 3 Realtime yet). A settings `llm-stepfun:` section still overlays the chat row either way.
 
 -----
 

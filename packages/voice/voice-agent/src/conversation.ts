@@ -99,16 +99,29 @@ export class VoiceConversation {
   private state: VoiceState = 'listening'
   /** Text accumulated for the agent turn currently streaming. */
   private turnText = ''
-  /** A turn-finished text waiting to be spoken; `undefined` when none. */
-  private pendingAnswer: string | undefined
+  /** The turn number whose text {@link turnText} accumulates; detects turn boundaries. */
+  private activeTurn: number | undefined = undefined
+  /**
+   * Converged answers waiting for the speaker, in completion order. A list —
+   * not a slot — because one driver activation can run several queued
+   * transcripts back-to-back under a single `idle` transition.
+   */
+  private readonly answers: string[] = []
   /** Speech items waiting for the speaker, in acceptance order. */
   private readonly speechQueue: SpeechItem[] = []
   /** The acknowledgement line, or `undefined` when disabled. */
   private readonly acknowledgement: string | undefined
+  /**
+   * Transcripts accepted as tasks whose answers have not converged yet.
+   * `listening` is only honest once this drains — an accepted-but-unanswered
+   * task keeps the phase at `thinking` even between spoken items.
+   */
+  private acceptedTasks = 0
   private draining = false
   /** Resolves the in-flight {@link speakAndWait}; barge-in and done share it. */
   private speechDone: (() => void) | undefined
   private closed = false
+  private closePromise: Promise<void> | undefined
   private readonly disposers: (() => void)[] = []
 
   private constructor(
@@ -129,7 +142,15 @@ export class VoiceConversation {
     this.disposers.push(ctx.on('agent/assistant-stream', ({ agent: subject, frame }) => {
       if (subject !== this.agent) return
       if (frame.type === 'start') {
-        this.turnText = ''
+        // One driver activation runs queued transcripts back-to-back under a
+        // single idle transition: a start whose turn differs from the one
+        // this text belongs to closes that turn out as its own answer, so a
+        // rapid second transcript can never overwrite the first answer.
+        if (frame.turn !== this.activeTurn && this.turnText.trim().length > 0) {
+          this.answers.push(this.turnText)
+          this.turnText = ''
+        }
+        this.activeTurn = frame.turn
         return
       }
       if (frame.type !== 'chunk') return
@@ -141,8 +162,11 @@ export class VoiceConversation {
     // A turn that converged with text owes that text to the speaker.
     this.disposers.push(ctx.on('agent/status', ({ agent: subject, status }) => {
       if (subject !== this.agent || status !== 'idle') return
-      if (this.turnText.trim().length > 0) this.pendingAnswer = this.turnText
+      if (this.turnText.trim().length > 0) this.answers.push(this.turnText)
       this.turnText = ''
+      this.activeTurn = undefined
+      // One activation consumes every transcript queued on it.
+      this.acceptedTasks = 0
     }))
 
     // The duplex wiring: finalized user transcripts become agent tasks; the
@@ -241,7 +265,14 @@ export class VoiceConversation {
   }
 
   /** Stop the conversation, close the voice channel, and flush the session. */
-  async close(): Promise<void> {
+  close(): Promise<void> {
+    // Memoize: a transport-initiated close racing the consumer's close must
+    // let the second caller await the first close's still-pending flush.
+    this.closePromise ??= this.closeNow()
+    return this.closePromise
+  }
+
+  private async closeNow(): Promise<void> {
     if (this.closed) return
     this.closed = true
     this.speechDone?.()
@@ -257,13 +288,14 @@ export class VoiceConversation {
     this.events.onUserTranscript?.(transcript)
     if (transcript.trim().length === 0 || this.closed) return
     this.setState('thinking')
+    this.acceptedTasks += 1
     // Codex-style acknowledgement: confirm the accepted task only while the
     // speaker has nothing queued or in flight, so busy-queue follow-ups and
     // post-answer speech never double up against it.
     if (
       this.acknowledgement !== undefined
       && this.speechQueue.length === 0
-      && this.pendingAnswer === undefined
+      && this.answers.length === 0
       && this.speechDone === undefined
     ) {
       this.speechQueue.push({
@@ -281,15 +313,27 @@ export class VoiceConversation {
   /** The user started speaking while an answer may be playing. */
   private onBargeIn(): void {
     // Barge-in cancels the spoken response only: the agent turn keeps running
-    // to completion, and its text still reaches the durable session log.
-    if (this.speechDone !== undefined) this.session.cancelResponse()
+    // to completion, and its text still reaches the durable session log. The
+    // cancel rides the transport's dispatch path, so a dying socket must not
+    // turn it into an uncaught exception.
+    if (this.speechDone === undefined) return
+    try {
+      this.session.cancelResponse()
+    } catch (error: unknown) {
+      this.events.onError?.(error instanceof Error ? error.message : String(error))
+    }
   }
 
-  /** The spoken response settled (finished or cancelled). */
+  /**
+   * The spoken response settled (finished or cancelled). Only an in-flight
+   * wait counts: a stray error while the agent works must not report
+   * `listening` for an answer that is still owed.
+   */
   private onSpeechSettled(cancelled: boolean): void {
     const done = this.speechDone
     this.speechDone = undefined
-    if (done !== undefined) done()
+    if (done === undefined) return
+    done()
     if (cancelled) this.setState('listening')
   }
 
@@ -316,10 +360,10 @@ export class VoiceConversation {
             continue
           }
           await this.agent.whenIdle()
-          const answer = this.pendingAnswer
-          this.pendingAnswer = undefined
+          const answer = this.answers.shift()
           if (answer === undefined) {
-            this.setState('listening')
+            // An accepted task still converging keeps the phase honest.
+            this.setState(this.acceptedTasks > 0 ? 'thinking' : 'listening')
             await poll()
             continue
           }
@@ -339,14 +383,23 @@ export class VoiceConversation {
    * cancels the response server-side, which resolves the wait.
    */
   private async speakAndWait(item: SpeechItem): Promise<void> {
-    await new Promise<void>((resolve) => {
-      this.speechDone = resolve
-      this.setState('speaking')
-      this.session.speak(item.text, item.instructions)
-      // A response that never settles (transport dropped mid-speech) must not
-      // wedge the drain loop: the conversation's close() resolves the waiter.
-    })
-    if (item.kind === 'answer') this.setState('listening')
+    try {
+      await new Promise<void>((resolve) => {
+        this.speechDone = resolve
+        this.setState('speaking')
+        this.session.speak(item.text, item.instructions)
+        // A response that never settles (transport dropped mid-speech) must
+        // not wedge the drain loop: the conversation's close() resolves the
+        // waiter, and a speak() that throws settles it right here — the loop
+        // survives to serve the rest of the queue.
+      })
+    } catch (error: unknown) {
+      this.speechDone?.()
+      this.speechDone = undefined
+      this.events.onError?.(error instanceof Error ? error.message : String(error))
+    } finally {
+      if (item.kind === 'answer') this.setState('listening')
+    }
   }
 
   private setState(state: VoiceState): void {

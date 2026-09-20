@@ -68,6 +68,13 @@ export class RealtimeSession {
   private readonly transport: RealtimeTransport
   private readonly options: RealtimeSessionOptions
   private closed = false
+  /**
+   * Whether a `response.done` may currently reach the consumer. A cancelled
+   * response disarms it until the next `response.create`, so the platform's
+   * trailing done for the cancelled response cannot settle the consumer's
+   * *next* spoken wait prematurely.
+   */
+  private doneArmed = true
 
   constructor(options: RealtimeSessionOptions, events: RealtimeSessionEvents) {
     this.options = options
@@ -130,7 +137,9 @@ export class RealtimeSession {
           ))
         })
       }
-      // Route only until acknowledged: handleFrame is re-installed on ack.
+      // Route only until acknowledged: handleFrame is re-installed on ack. A
+      // late `session.created` after a timeout must not resurrect a socket the
+      // consumer already gave up on — close it instead of owning it.
       this.transport.onFrame((frame) => {
         let event: ServerEvent
         try {
@@ -139,6 +148,10 @@ export class RealtimeSession {
           return
         }
         if (event.type === 'session.created') {
+          if (settled) {
+            this.transport.close(1000, 'handshake already settled')
+            return
+          }
           this.transport.onFrame((nested) => { this.handleFrame(nested) })
           settle(() => { resolve() })
         } else if (event.type === 'error') {
@@ -200,11 +213,16 @@ export class RealtimeSession {
         ...instructions === undefined ? {} : { instructions },
       },
     })
+    // A new response re-arms done delivery for its own lifecycle.
+    this.doneArmed = true
   }
 
   /** Cancel the response currently streaming. */
   cancelResponse(): void {
     this.send({ type: 'response.cancel' })
+    // The cancelled response's trailing `response.done` must not settle a
+    // wait the consumer installs for its *next* spoken item.
+    this.doneArmed = false
   }
 
   /** Close the connection; later sends throw. Idempotent. */
@@ -252,6 +270,7 @@ export class RealtimeSession {
       case 'response.audio.delta':
         return this.events.onAssistantAudioDelta?.(event.delta)
       case 'response.done':
+        if (!this.doneArmed) return
         return this.events.onResponseDone?.()
       case 'response.cancelled':
         return this.events.onResponseCancelled?.()

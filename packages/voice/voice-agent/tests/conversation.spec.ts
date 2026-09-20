@@ -6,7 +6,7 @@
  * @module dsh-voice-agent/conversation.spec
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import AgentDefaultModelConfig from '@deepseek-ai/dsh-agent-default-model'
@@ -31,11 +31,14 @@ import type { VoiceConversationEvents, VoiceState } from '../src/conversation.ts
 /** Transport double shared with the realtime package's own tests. */
 class FakeTransport implements RealtimeTransport {
   readonly sent: string[] = []
+  /** When set, sends throw the way a dead socket would. */
+  failSend = false
   private frameListener: (frame: string) => void = () => {}
   private closeListener: (code: number, reason: string) => void = () => {}
   private errorListener: (error: unknown) => void = () => {}
 
   send(frame: string): void {
+    if (this.failSend) throw new Error('socket send failed')
     this.sent.push(frame)
   }
 
@@ -91,6 +94,12 @@ interface Bench {
   deliverTranscript(transcript: string): void
   /** Emit one complete text turn from the agent and settle it. */
   emitAgentTurn(answer: string): void
+  /**
+   * Emit several agent turns inside ONE driver activation — consecutive
+   * `start` frames with distinct turn numbers, one idle at the end.
+   */
+  emitAgentTurns(answers: string[]): void
+  currentState(): VoiceState
   session(): Session
 }
 
@@ -172,13 +181,14 @@ async function bench(realtime: Record<string, unknown> = {}): Promise<Bench> {
   } satisfies VoiceConversationEvents)
 
   let frameIndex = 0
-  const emit = (chunk: StreamChunk): void => {
+  const emit = (chunk: StreamChunk & { turn?: number }): void => {
     const agent = holder.agent
     if (agent === undefined) throw new Error('no agent')
     const attemptId = LlmAttemptId(`${String(agent.id)}:test`)
+    const turn = chunk.turn ?? 1
     const frame: AssistantStreamFrame = chunk.type === 'text-delta'
       ? { type: 'chunk', attemptId, revision: 1, index: frameIndex++, time: Date.now(), chunk }
-      : { type: 'start', attemptId, revision: 1, turn: 1, step: 1 }
+      : { type: 'start', attemptId, revision: 1, turn, step: 1 }
     agent.ctx.emit('agent/assistant-stream', { agent, frame })
   }
 
@@ -188,6 +198,19 @@ async function bench(realtime: Record<string, unknown> = {}): Promise<Bench> {
     idle = (async () => {
       emit({ type: 'block-start', index: 0, blockType: 'text' })
       emit({ type: 'text-delta', index: 0, text: answer })
+      agent.ctx.emit('agent/status', { agent, status: 'running' })
+      agent.ctx.emit('agent/status', { agent, status: 'idle' })
+    })()
+  }
+
+  const emitAgentTurns = (answers: string[]): void => {
+    const agent = holder.agent
+    if (agent === undefined) throw new Error('bench not ready')
+    idle = (async () => {
+      for (const [turn, answer] of answers.entries()) {
+        emit({ type: 'block-start', index: 0, blockType: 'text', turn: turn + 1 })
+        emit({ type: 'text-delta', index: 0, text: answer })
+      }
       agent.ctx.emit('agent/status', { agent, status: 'running' })
       agent.ctx.emit('agent/status', { agent, status: 'idle' })
     })()
@@ -219,6 +242,8 @@ async function bench(realtime: Record<string, unknown> = {}): Promise<Bench> {
       transport.deliver({ type: 'conversation.item.input_audio_transcript.completed', transcript })
     },
     emitAgentTurn,
+    emitAgentTurns,
+    currentState: () => conversation.currentState,
     agent: () => holder.agent ?? undefined as unknown as Agent,
     transport: () => holder.transport ?? undefined as unknown as FakeTransport,
     states: () => [...states],
@@ -272,6 +297,82 @@ describe('VoiceConversation', () => {
     expect(agent.inbox.nextTurn).toHaveLength(0)
     expect(bench_.states()).toEqual([])
     await bench_.conversation.close()
+  })
+})
+
+describe('VoiceConversation failure survival and multi-turn answers', () => {
+  /** Settle the currently speaking response so the drain loop advances. */
+  function settleSpeech(transport: FakeTransport): void {
+    transport.deliver({ type: 'response.done' })
+  }
+
+  it('speaks every answer of one driver activation without losing the first', async () => {
+    const bench_ = await bench()
+    bench_.deliverTranscript('first question')
+    bench_.deliverTranscript('second question')
+    // One activation: two consecutive turns under a single idle transition.
+    bench_.emitAgentTurns(['answer one', 'answer two'])
+    const transport = bench_.transport()
+    // Ack first.
+    await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
+    settleSpeech(transport)
+    // Then both answers, in completion order, none lost.
+    await waitFor(() => bench_.finals().includes('answer one'))
+    settleSpeech(transport)
+    await waitFor(() => bench_.finals().includes('answer two'))
+    settleSpeech(transport)
+    const spoken = transport.sentEvents()
+      .filter((event): event is ResponseCreateEvent => event.type === 'response.create')
+      .map(event => event.response?.input?.[0]?.text)
+    expect(spoken).toEqual([DEFAULT_ACKNOWLEDGEMENT, 'answer one', 'answer two'])
+    expect(bench_.finals()).toEqual(['answer one', 'answer two'])
+    await bench_.conversation.close()
+  })
+
+  it('survives a speak failure and keeps serving later answers', async () => {
+    const bench_ = await bench()
+    const transport = bench_.transport()
+    // Force the acknowledgement's response.create to fail the way a dead
+    // socket would.
+    transport.failSend = true
+    bench_.deliverTranscript('hello')
+    await new Promise((resolve) => { setTimeout(resolve, DRAIN_WAIT) })
+    // The failed ack never reached the wire; the drain loop survived.
+    expect(transport.sentEvents().filter(event => event.type === 'response.create')).toHaveLength(0)
+    transport.failSend = false
+    bench_.emitAgentTurn('recovered answer')
+    await waitFor(() => bench_.finals().includes('recovered answer'))
+    await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
+    await bench_.conversation.close()
+  })
+
+  it('does not report listening for a stray error while the agent works', async () => {
+    const bench_ = await bench()
+    bench_.deliverTranscript('working question')
+    const transport = bench_.transport()
+    await waitFor(() => transport.sentEvents().some(event => event.type === 'response.create'))
+    // The acknowledgement settles; the agent is still working on the task.
+    settleSpeech(transport)
+    await waitFor(() => bench_.currentState() === 'thinking')
+    transport.deliver({ type: 'error', error: { message: 'stray' } })
+    await new Promise((resolve) => { setTimeout(resolve, DRAIN_WAIT) })
+    // No spoken wait is in flight: the phase must stay honest.
+    expect(bench_.states()).not.toContain('listening')
+    expect(bench_.currentState()).toBe('thinking')
+    bench_.emitAgentTurn('the answer')
+    await waitFor(() => bench_.finals().includes('the answer'))
+    settleSpeech(transport)
+    await waitFor(() => bench_.currentState() === 'listening')
+    await bench_.conversation.close()
+  })
+
+  it('lets a second close await the first close flush instead of racing it', async () => {
+    const bench_ = await bench()
+    const flushSpy = vi.spyOn(bench_.ctx.sessions as unknown as { flush: (session: Session) => Promise<void> }, 'flush')
+    const first = bench_.conversation.close()
+    const second = bench_.conversation.close()
+    await Promise.all([first, second])
+    expect(flushSpy).toHaveBeenCalledTimes(1)
   })
 })
 

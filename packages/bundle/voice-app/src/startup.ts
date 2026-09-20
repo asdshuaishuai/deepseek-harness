@@ -29,7 +29,7 @@ export interface VoiceStartupValues {
   /**
    * Run the whole voice profile on the Step Plan subscription channel: the
    * agent's chat requests and the realtime session both switch endpoints
-   * (and the realtime model becomes the plan-supported preview id).
+   * (and the realtime model becomes the plan-supported id).
    */
   stepPlan: boolean
   /**

@@ -78,6 +78,19 @@ export async function bridgeStdin(
   conversation: VoiceConversation,
   stdin: AsyncIterable<Buffer>,
 ): Promise<void> {
+  const consume = (line: string): boolean => {
+    const input = parseBridgeLine(line)
+    try {
+      if (input?.audio !== undefined) conversation.sendAudio(input.audio)
+      if (input?.commit === true) conversation.commitUtterance()
+    } catch {
+      // The voice channel died (transport drop) while the driver kept
+      // writing: stop pumping and let the runner shut down cleanly instead
+      // of failing the process with exit 1 after the closed line.
+      return false
+    }
+    return true
+  }
   let buffer = ''
   for await (const chunk of stdin) {
     buffer += chunk.toString('utf8')
@@ -85,10 +98,10 @@ export async function bridgeStdin(
     while (newline !== -1) {
       const line = buffer.slice(0, newline)
       buffer = buffer.slice(newline + 1)
-      const input = parseBridgeLine(line)
-      if (input?.audio !== undefined) conversation.sendAudio(input.audio)
-      if (input?.commit === true) conversation.commitUtterance()
+      if (!consume(line)) return
       newline = buffer.indexOf('\n')
     }
   }
+  // A driver whose final frame lacks the trailing newline still gets it.
+  if (buffer.trim().length > 0) consume(buffer)
 }
