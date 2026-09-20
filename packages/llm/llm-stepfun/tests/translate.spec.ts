@@ -106,7 +106,7 @@ describe('translate: degenerate and malformed streams', () => {
     expect(chunks).toEqual([
       {
         type: 'finish',
-        reason: { kind: 'error', failure: { message: expect.any(String), code: EMPTY_RESPONSE_CODE } },
+        reason: { kind: 'error', failure: { message: expect.any(String) as string, code: EMPTY_RESPONSE_CODE } },
       },
     ])
   })

@@ -1687,7 +1687,7 @@ export interface StepFunCatalogModel {
   /**
    * Selectable reasoning-effort ids this model accepts as `reasoning_effort`
    * (Step 3.7 Flash: low/medium/high; Step 3.5 Flash 2603: low/high). Absence
-   * keeps thinking automatic with no request field.
+   * or an empty list keeps thinking automatic with no request field.
    */
   reasoningEfforts?: string[]
 }

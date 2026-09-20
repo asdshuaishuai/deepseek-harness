@@ -343,6 +343,7 @@ function assertRetainedImagesFit(messages: readonly Message[], images: ImageSeri
  * @param images - request versions, optional current access resolver, and request bounds.
  * @returns the fully materialized StepFun request body.
  */
+// oxlint-disable-next-line typescript/require-await -- async preserves the awaited rejection contract its tests pin.
 export async function serializeRequestWithImages(
   options: GenerateOptions,
   images: ImageSerializationOptions,

@@ -44,7 +44,7 @@ const PRODUCT_SECTIONS: readonly string[] = ['general', 'models', 'plugins', 'ag
 /** Onboarding steps the web-app roster registers, in coordinator order; both come from ui-settings-models. */
 const PRODUCT_ONBOARDING: readonly { id: string; order: number }[] = [
   { id: 'welcome-notice', order: -100 },
-  { id: 'deepseek-official', order: 0 },
+  { id: 'official-provider', order: 0 },
 ]
 
 describe('ui-settings-general shell', () => {

@@ -76,7 +76,10 @@ const catalogModel: z<StepFunCatalogModel> = z.object({
   maxTokens: z.number().step(1).min(1),
   inputModalities: z.array(z.union(MODEL_MODALITIES)).min(1).default(['text']),
   imageMaxBytes: z.number().step(1).min(1),
-  reasoningEfforts: z.array(z.string()).min(1),
+  // No min(1): schemastery materializes an absent array as [], so the
+  // presence-shape rules live in resolveModels, which also folds [] back to
+  // absence.
+  reasoningEfforts: z.array(z.string()),
 })
 
 export const Config: z<Config> = z.object({
@@ -224,12 +227,15 @@ function resolveModels(models: readonly StepFunCatalogModel[]): StepFunCatalogMo
     }
     if (seen.has(model.id)) throw new Error(`llm-stepfun: duplicate catalog model "${model.id}"`)
     seen.add(model.id)
-    if (model.reasoningEfforts !== undefined) {
-      if (model.reasoningEfforts.length === 0) {
-        throw new Error(`llm-stepfun: catalog model "${model.id}" reasoningEfforts must not be empty`)
-      }
+    // An empty list and absence mean the same thing — thinking stays
+    // automatic with no request field — because the settings schema
+    // materializes an absent array as [].
+    const reasoningEfforts = model.reasoningEfforts === undefined || model.reasoningEfforts.length === 0
+      ? undefined
+      : model.reasoningEfforts
+    if (reasoningEfforts !== undefined) {
       const effortSeen = new Set<string>()
-      for (const effort of model.reasoningEfforts) {
+      for (const effort of reasoningEfforts) {
         if (effort.length === 0) {
           throw new Error(`llm-stepfun: catalog model "${model.id}" reasoningEfforts must not contain empty ids`)
         }
@@ -249,7 +255,7 @@ function resolveModels(models: readonly StepFunCatalogModel[]): StepFunCatalogMo
       ...hasImage
         ? { imageMaxBytes: model.imageMaxBytes ?? DEFAULT_REQUEST_IMAGE_MAX_BYTES }
         : {},
-      ...model.reasoningEfforts === undefined ? {} : { reasoningEfforts: [...model.reasoningEfforts] },
+      ...reasoningEfforts === undefined ? {} : { reasoningEfforts: [...reasoningEfforts] },
     }
   })
 }

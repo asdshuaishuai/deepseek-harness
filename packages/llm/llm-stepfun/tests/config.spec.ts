@@ -87,10 +87,9 @@ describe('resolveAdapterOptions', () => {
     })).toThrow(/cannot declare image request limits/)
   })
 
-  it('validates cataloged reasoning efforts: empty ids and duplicates', () => {
-    expect(() => resolveAdapterOptions({
-      models: [{ id: 'm', reasoningEfforts: [] }],
-    })).toThrow(/reasoningEfforts must not be empty/)
+  it('validates cataloged reasoning efforts: empty folds to absence, empty ids and duplicates reject', () => {
+    const empty = resolveAdapterOptions({ models: [{ id: 'm', reasoningEfforts: [] }] })
+    expect(empty.models[0]?.reasoningEfforts).toBeUndefined()
     expect(() => resolveAdapterOptions({
       models: [{ id: 'm', reasoningEfforts: ['low', ''] }],
     })).toThrow(/must not contain empty ids/)
