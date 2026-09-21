@@ -1,0 +1,52 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.micActive {
+  color: #d33;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.phase {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.model {
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.caption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.error {
+  color: #c0392b;
+}

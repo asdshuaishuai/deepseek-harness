@@ -14,6 +14,8 @@ interface ConversationDouble extends Pick<VoiceConversation, 'id' | 'sendAudio' 
   sent: string[]
   committed: number
   events: VoiceConversationEvents
+  /** When set, `close` rejects with this value (Error or not). */
+  closeFailure: unknown
 }
 
 function conversationDouble(): ConversationDouble {
@@ -22,16 +24,22 @@ function conversationDouble(): ConversationDouble {
     sent: [] as string[],
     committed: 0,
     events: undefined as unknown as VoiceConversationEvents,
+    closeFailure: undefined as unknown,
     id: 'session-1' as never,
     sendAudio: (base64: string) => { double.sent.push(base64) },
     commitUtterance: () => { double.committed += 1 },
-    close: () => { double.closed = true; return Promise.resolve() },
+    close: () => {
+      // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- non-Error failures surface verbatim via String(error).
+      if (double.closeFailure !== undefined) return Promise.reject(double.closeFailure)
+      double.closed = true
+      return Promise.resolve()
+    },
   }
-  return double as ConversationDouble
+  return double
 }
 
 /** Harness: one session over a recorded sink with a programmable opener. */
-function harness(openOutcome: 'ok' | 'throws' = 'ok') {
+function harness(openOutcome: 'ok' | 'throws' | 'throws-plain' = 'ok') {
   const text: string[] = []
   const binary: Buffer[] = []
   const socketClosed: boolean[] = []
@@ -40,6 +48,11 @@ function harness(openOutcome: 'ok' | 'throws' = 'ok') {
     realtimeModel: 'stepaudio-2.5-realtime',
     openConversation: (sessionId, events) => {
       if (openOutcome === 'throws') return Promise.reject(new Error('no STEPFUN_API_KEY stored'))
+      if (openOutcome === 'throws-plain') {
+        const plainFailure: unknown = 'plain failure'
+        // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- exercises the verbatim String(error) report path.
+        return Promise.reject(plainFailure)
+      }
       conversation.events = events
       void sessionId
       return Promise.resolve(conversation)
@@ -101,7 +114,7 @@ describe('VoiceSocketSession', () => {
   it('routes commit to the conversation and stop to a clean close', async () => {
     const h = harness()
     await h.session.handleFrame({ type: 'start' })
-    h.session.handleFrame({ type: 'commit' })
+    void h.session.handleFrame({ type: 'commit' })
     expect(h.conversation.committed).toBe(1)
     await h.session.handleFrame({ type: 'stop' })
     expect(h.conversation.closed).toBe(true)
@@ -147,5 +160,75 @@ describe('VoiceSocketSession', () => {
     expect(kinds).toContain('assistant-delta')
     expect(kinds).toContain('assistant-final')
     expect(h.binary.map(frame => frame.toString())).toEqual(['ABC'])
+  })
+
+  it('reports conversation errors as server error frames', async () => {
+    const h = harness()
+    await h.session.handleFrame({ type: 'start' })
+    h.conversation.events.onError?.('upstream stalled')
+    expect(h.text.some(frame => frame.includes('upstream stalled'))).toBe(true)
+  })
+
+  it('reports a non-Error opener failure verbatim', async () => {
+    const h = harness('throws-plain')
+    await h.session.handleFrame({ type: 'start' })
+    expect(h.text.some(frame => frame.includes('plain failure'))).toBe(true)
+  })
+
+  it('ignores control frames and audio after the socket died', async () => {
+    const h = harness()
+    h.session.internalAbandon()
+    await h.session.handleFrame({ type: 'start' })
+    h.session.handleAudio(Buffer.from([1]))
+    expect(h.text).toEqual([])
+    expect(h.binary).toEqual([])
+    expect(h.session.bound).toBe(false)
+  })
+
+  it('drops empty audio frames silently', () => {
+    const h = harness()
+    h.session.handleAudio(Buffer.alloc(0))
+    expect(h.text).toEqual([])
+  })
+
+  it('notifies the client and closes the socket when the session itself dies', () => {
+    const h = harness()
+    h.session.handleConversationClosed('voice channel lost')
+    expect(h.text.some(frame => frame.includes('"reason":"voice channel lost"'))).toBe(true)
+    expect(h.socketClosed).toEqual([true])
+  })
+
+  it('no-ops stop before any conversation exists', async () => {
+    const h = harness()
+    await h.session.handleFrame({ type: 'stop' })
+    expect(h.session.bound).toBe(false)
+    expect(h.text).toEqual([])
+  })
+
+  it('surfaces a failed conversation close as an error frame', async () => {
+    const h = harness()
+    await h.session.handleFrame({ type: 'start' })
+    h.conversation.closeFailure = new Error('close failed')
+    await h.session.handleFrame({ type: 'stop' })
+    expect(h.text.some(frame => frame.includes('close failed'))).toBe(true)
+  })
+
+  it('reports a non-Error close failure verbatim', async () => {
+    const h = harness()
+    await h.session.handleFrame({ type: 'start' })
+    h.conversation.closeFailure = 'plain close failure'
+    await h.session.handleFrame({ type: 'stop' })
+    expect(h.text.some(frame => frame.includes('plain close failure'))).toBe(true)
+  })
+
+  it('drops the conversation silently when the socket dies during a failed close', async () => {
+    const h = harness()
+    await h.session.handleFrame({ type: 'start' })
+    const framesAfterStart = h.text.length
+    h.conversation.closeFailure = new Error('abandon race')
+    // internalAbandon writes nothing: the socket is already gone.
+    h.session.internalAbandon()
+    expect(h.text).toHaveLength(framesAfterStart)
+    expect(h.session.bound).toBe(false)
   })
 })

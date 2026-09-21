@@ -7,17 +7,20 @@ the tests each stage owes, and what is explicitly out of scope.
 
 ## Status and decision (2026-09-21)
 
-**This document is the implementation plan, to be carried out elsewhere.** The
-browser voice surface is deliberately not built in this branch: the plan is
-written here as the handoff, self-contained on purpose — exact packages, wire
-contract, per-stage test obligations, and risks — so another session, task, or
-team can implement it without re-deriving the design. Until that happens the
-CLI `voice` profile remains this branch's voice surface, and it already drives
-the pinned realtime models end to end.
+**Stages 1–4 are implemented on this branch.** Stage 1 (the web composition
+rows for `dsh-stepfun-realtime`, `dsh-voice-agent`, and
+`dsh-voice-web-bridge`) and Stage 2 (the `/voice` bridge: trust-plane gate,
+frame protocol, per-socket state machine) landed first; Stage 3/4 landed as
+`packages/client/ui-voice` — AudioWorklet capture (16 kHz PCM16), 24 kHz
+playback, the process-local `VoiceController`, and the `VoiceDock` mic toggle
+with the `voice` locale namespace. The protocol core
+(`voice-web-bridge/src/protocol.ts`) carries the full per-file coverage gate;
+the ws wiring is exercised by `tests/web-bridge.integration.spec.ts` over real
+sockets. The manual QA checklist below (device matrix, barge-in feel) is the
+remaining non-automatable work.
 
-The stages are ordered to land bottom-up (Stage 1 composition → Stage 2
-transport → Stage 3 audio → Stage 4 panel), each one green before the next
-begins.
+The stages landed bottom-up (Stage 1 composition → Stage 2 transport →
+Stage 3 audio → Stage 4 panel), each green before the next began.
 
 ## Goal
 

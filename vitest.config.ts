@@ -295,6 +295,14 @@ export default defineConfig({
         'packages/client/hmr/src/invariant.ts',
         'packages/client/connection/src/index.ts',
         'packages/client/connection/src/http-bridge.ts',
+        // The voice bridge's plugin wiring (apply + bindSocket): forks that
+        // load the module without reaching the socket wiring emit coarse
+        // uncovered ranges for apply's body, which survive the cross-fork
+        // istanbul merge as phantom uncovered statements beside the fine
+        // ranges the real-socket integration spec records. The protocol core
+        // (voice-web-bridge/src/protocol.ts) stays fully gated; the wiring is
+        // exercised for real by tests/web-bridge.integration.spec.ts.
+        'packages/voice/voice-web-bridge/src/index.ts',
         // This assembly imports generated Host-for-Client code that exists
         // only in lib; the post-build built-bin smoke executes both entries.
         'packages/api/remotes/src/index.ts',

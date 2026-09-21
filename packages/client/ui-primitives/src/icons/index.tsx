@@ -1020,3 +1020,12 @@ export const IconPluginPinwheelOutline16 = ({ size = 16, className }: IconProps)
     <path d="M10.7476 7.89535C10.8708 11.7113 9.66109 14.847 8.0456 14.8991C6.83496 14.9382 5.74 13.2346 5.21536 10.7723" stroke="currentColor" strokeWidth="1.2" />
   </svg>
 )
+
+/** Composer voice dock glyph: a rounded microphone contour on the 16 grid. */
+export const IconMicOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="1.5" width="4" height="7.5" rx="2" stroke="currentColor" strokeWidth="1.2" />
+    <path d="M3.5 7.5C3.5 9.985 5.515 12 8 12C10.485 12 12.5 9.985 12.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M8 12V14.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+)

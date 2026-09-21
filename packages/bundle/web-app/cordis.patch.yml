@@ -56,6 +56,10 @@
     - id: session-log-download
       name: '@deepseek-ai/dsh-session-log-export'
 
+    # Voice dock: the mic toggle in the input strip bound to the /voice bridge.
+    - id: ui-voice
+      name: '@deepseek-ai/dsh-client-ui-voice'
+
     # Duplex voice host services: the realtime session and the voice agent
     # live on the HOST (the API key never reaches the browser). The voice
     # bridge mounts the browser transport; without STEPFUN_API_KEY both

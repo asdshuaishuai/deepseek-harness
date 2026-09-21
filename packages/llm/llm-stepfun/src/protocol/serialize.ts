@@ -327,7 +327,7 @@ function assertRetainedImagesFit(messages: readonly Message[], images: ImageSeri
     ...images.maxImagesPerRequest === undefined ? {} : { maxImages: images.maxImagesPerRequest },
     ...images.byteQuantum === undefined ? {} : { byteQuantum: images.byteQuantum },
     ...images.countQuantum === undefined ? {} : { countQuantum: images.countQuantum },
-  }, (block) => preparedImageVersion(images, block.attachment.attachmentId).bytes)
+  }, block => preparedImageVersion(images, block.attachment.attachmentId).bytes)
   if (offloadImages > 0) {
     throw new LlmError(
       `StepFun base64 request images exceed the route budget; ${offloadImages} more oldest occurrence(s) must be offloaded.`,
