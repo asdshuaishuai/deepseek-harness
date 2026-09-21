@@ -14,7 +14,7 @@
  * rows the user can still fill in by hand.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { LlmDiscoveredModel } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, IconPlusOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -59,6 +59,13 @@ export interface ProbeTarget {
   api?: string
   /** Key typed into the form and not yet stored, when there is one. */
   apiKey?: string
+  /**
+   * Billing channel as the form currently shows it, when the family has one.
+   * Not sent with the interrogation — the stored section already carries the
+   * live channel — but a channel switch re-runs discovery so the built-in
+   * catalog follows the newly selected channel on screen.
+   */
+  channel?: string
 }
 
 /** Props of {@link ModelListEditor}. */
@@ -156,9 +163,27 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
       setFailure(answer.kind === 'refused' ? answer.message : undefined)
     })
     return () => { current = false }
-  }, [catalogProvider, operations, probe.settingsNs])
+  }, [catalogProvider, operations, probe.settingsNs, probe.channel])
   const catalog = inheritedCatalog?.provider === catalogProvider ? inheritedCatalog?.models : undefined
   const inputDefaults = useMemo(() => new Map(catalog?.map(model => [model.id, model.inputModalities])), [catalog])
+  // Rows the editor shows and writes through. A drafted list always wins —
+  // the create card and any already-pinned card edit exactly what it holds —
+  // and so does a list the user edited in this card, even when that edit
+  // emptied it. Only an inherited draft that was never touched falls back to
+  // the adapter's live catalog, because the built-in rows never live in the
+  // settings document (materializing them there would freeze one channel's
+  // catalog over another's); the discovered models come from the same
+  // adapter surface that follows a settings hot swap, and the first edit
+  // pins the whole list.
+  const locallyEdited = useRef(false)
+  const rows: readonly ModelDraft[] = props.overridden === true || locallyEdited.current || models.length > 0
+    ? models
+    : catalog === undefined ? models : catalog.map(adopt)
+  /** Run one mutation and remember that this card now owns the list. */
+  const editRows = (mutate: (current: readonly ModelDraft[]) => ModelDraft[]): void => {
+    locallyEdited.current = true
+    onChange(mutate(rows))
+  }
   const [candidates, setCandidates] = useState<readonly LlmDiscoveredModel[] | undefined>(undefined)
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
   const [candidateQuery, setCandidateQuery] = useState('')
@@ -207,7 +232,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   }
 
   const patch = (index: number, next: Record<string, string | number | undefined>): void => {
-    onChange(models.map((model, at) => {
+    editRows(current => current.map((model, at) => {
       if (at !== index) return model
       // Rebuilt rather than spread over: an emptied optional field has to leave
       // the profile, not be stored as a value its schema would reject.
@@ -245,7 +270,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
       }
       // Everything already configured starts unchecked, so adopting a
       // selection never silently rewrites a capacity the user corrected.
-      const known = new Set(models.map(model => textOf(model, 'id')))
+      const known = new Set(rows.map(model => textOf(model, 'id')))
       setCandidateQuery('')
       setCandidates(found)
       setPicked(new Set(found.filter(model => !known.has(model.id)).map(model => model.id)))
@@ -263,7 +288,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const adoptPicked = (): void => {
     /* v8 ignore next -- the dialog only renders with candidates loaded */
     if (candidates === undefined) return
-    const byId = new Map(models.map(model => [textOf(model, 'id'), model]))
+    const byId = new Map(rows.map(model => [textOf(model, 'id'), model]))
     for (const candidate of candidates) {
       if (!picked.has(candidate.id)) continue
       // A row the user already tuned wins over the provider's own numbers.
@@ -272,7 +297,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
       // without an id is not yet a model and the create/apply gates refuse it.
       byId.set(candidate.id, byId.get(candidate.id) ?? adopt(candidate))
     }
-    onChange([...byId.values()])
+    editRows(() => [...byId.values()])
     closePicker()
   }
 
@@ -344,9 +369,9 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
           {busy ? t('fetching') : t('fetchModels')}
         </button>
       </div>
-      {models.length === 0 ? <p className={styles['modelEmpty']}>{t('modelsEmpty')}</p> : null}
+      {rows.length === 0 ? <p className={styles['modelEmpty']}>{t('modelsEmpty')}</p> : null}
       <div className={styles['modelList']}>
-        {models.map((model, index) => (
+        {rows.map((model, index) => (
           <ModelRow
             key={index}
             model={model}
@@ -368,10 +393,10 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
               onChange: (text) => { editCapacity(index, 'maxTokens', text) },
             }}
             onFieldChange={(field, value) => { patch(index, { [field]: value }) }}
-            onChange={(next) => { onChange(models.map((row, at) => at === index ? next : row)) }}
+            onChange={(next) => { editRows(current => current.map((row, at) => at === index ? next : row)) }}
             onToggle={() => { toggleExpanded(index) }}
             onRemove={() => {
-              onChange(models.filter((_model, at) => at !== index))
+              editRows(current => current.filter((_model, at) => at !== index))
               setExpanded((current) => {
                 const next = new Set<number>()
                 for (const at of current) {

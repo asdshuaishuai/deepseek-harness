@@ -804,6 +804,93 @@ describe('ModelsSection', () => {
     ]])
   })
 
+  it('writes the StepFun billing channel as a set op', async () => {
+    const namespace: SettingsNamespaceView = {
+      ...wireNamespaces()[0]!,
+      ns: 'llm-stepfun',
+      schema: JSON.parse(JSON.stringify(StepfunConfig.toJSON())) as JsonValue,
+      value: {
+        apiKeyEnv: 'STEPFUN_API_KEY',
+        baseURL: 'https://api.stepfun.com/v1',
+        defaultContextWindow: 1_000_000,
+        maxTokens: 65_536,
+        models: DEFAULT_STEPFUN_MODELS,
+      },
+      base: { defaultContextWindow: 1_000_000, maxTokens: 65_536, models: DEFAULT_STEPFUN_MODELS },
+      user: {},
+    }
+    const { face, mutate } = scriptedFace({
+      mutate: vi.fn(() => Promise.resolve(remoteOk(namespace))),
+    })
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="stepfun-official"
+      displayName="StepFun"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={vi.fn()}
+    />)
+    fireEvent.click(screen.getByText(en.customized))
+    const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
+    expect(channel.value).toBe('standard')
+    expect(screen.getByText(en.stepfunChannelHint)).toBeTruthy()
+    fireEvent.change(channel, { target: { value: 'step-plan' } })
+    fireEvent.click(screen.getByText(en.apply))
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(mutate.mock.calls[0]).toEqual([
+      'llm-stepfun',
+      [{ op: 'set', path: ['channel'], value: 'step-plan' }],
+      0,
+    ])
+  })
+
+  it('clears the StepFun channel override when switching back to the standard channel', async () => {
+    const namespace: SettingsNamespaceView = {
+      ...wireNamespaces()[0]!,
+      ns: 'llm-stepfun',
+      schema: JSON.parse(JSON.stringify(StepfunConfig.toJSON())) as JsonValue,
+      value: {
+        channel: 'step-plan',
+        apiKeyEnv: 'STEPFUN_API_KEY',
+        defaultContextWindow: 1_000_000,
+        maxTokens: 65_536,
+        models: DEFAULT_STEPFUN_MODELS,
+      },
+      base: { defaultContextWindow: 1_000_000, maxTokens: 65_536, models: DEFAULT_STEPFUN_MODELS },
+      user: { channel: 'step-plan' },
+    }
+    const { face, mutate } = scriptedFace({
+      mutate: vi.fn(() => Promise.resolve(remoteOk(namespace))),
+    })
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="stepfun-official"
+      displayName="StepFun"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={vi.fn()}
+    />)
+    fireEvent.click(screen.getByText(en.customized))
+    const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
+    expect(channel.value).toBe('step-plan')
+    fireEvent.change(channel, { target: { value: 'standard' } })
+    fireEvent.click(screen.getByText(en.apply))
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(mutate.mock.calls[0]).toEqual([
+      'llm-stepfun',
+      [{ op: 'unset', path: ['channel'] }],
+      0,
+    ])
+  })
+
   it('rejects duplicate DeepSeek model ids before writing', async () => {
     const { mutate } = await mountDeepSeekCard()
     fireEvent.click(screen.getByText(en.customized))

@@ -237,6 +237,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     ...probeBaseURL === undefined ? {} : { baseURL: probeBaseURL },
     ...probeApi === undefined ? {} : { api: probeApi },
     ...keyValue.length === 0 ? {} : { apiKey: keyValue },
+    // Discovery is not sent this field — the stored section already carries
+    // the live channel — but its value re-runs discovery, so the built-in
+    // catalog on screen follows a channel switch in the form.
+    channel: stringAt(draft, 'channel') ?? stringAt(fallback, 'channel') ?? 'standard',
   }
   /**
    * The write for this card, or a failure message. Every edit travels as
@@ -338,7 +342,16 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     // per-route identity for its schema to carry, hence the family test.
     const ownsIdentity = family === 'pi-ai' && props.declared === true
     const customModels = schema.getPath(draft, ['models'])
+    // An empty stored array only means "pinned to nothing" when the field has
+    // a declared default to fall back to (the DeepSeek family's shipped
+    // catalog): there, clearing is a real choice and inheritance is visible in
+    // the schema. A family whose catalog is channel-derived declares no
+    // default, and the settings layer materializes an absent list as [] — so
+    // for it an empty array is what "never touched the catalog" looks like,
+    // and the editor shows the adapter's discovered catalog while inherited.
+    const modelsHaveSchemaDefault = schema.nodeAtPath(root, [...settingsPath, 'models'])?.meta.default !== undefined
     const modelsOverridden = schema.hasPath(draft, ['models'])
+      && (modelsHaveSchemaDefault || (Array.isArray(customModels) && customModels.length > 0))
     const models = modelDrafts(modelsOverridden ? customModels : inheritedModels())
     const defaultContextWindow = schema.getPath(fallback, ['defaultContextWindow'])
     const defaultMaxTokens = schema.getPath(fallback, ['maxTokens'])
@@ -409,6 +422,34 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                     disabled={disabled}
                     onChange={(event) => { setField('displayName', event.target.value) }}
                   />
+                </div>
+              )
+              : null}
+            {/* The billing channel is the StepFun family's primary routing
+                choice — standard and Step Plan are one adapter and two
+                endpoints/catalogs — so it sits before the endpoint it
+                selects. `standard` is the schema default and travels as
+                absence, like every other cleared optional field. */}
+            {family === 'stepfun'
+              ? (
+                <div className={styles['field']}>
+                  <span className={styles['fieldLabel']}>{t('stepfunChannel')}</span>
+                  <select
+                    className={styles['selectInput']}
+                    value={stringAt(draft, 'channel') ?? stringAt(fallback, 'channel') ?? 'standard'}
+                    aria-label={t('stepfunChannel')}
+                    aria-describedby={`${props.provider}-channel-hint`}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      setField('channel', event.target.value === 'standard' ? undefined : event.target.value)
+                    }}
+                  >
+                    <option value="standard">{t('stepfunChannelStandard')}</option>
+                    <option value="step-plan">{t('stepfunChannelPlan')}</option>
+                  </select>
+                  <span id={`${props.provider}-channel-hint`} className={styles['advancedHint']}>
+                    {t('stepfunChannelHint')}
+                  </span>
                 </div>
               )
               : null}
