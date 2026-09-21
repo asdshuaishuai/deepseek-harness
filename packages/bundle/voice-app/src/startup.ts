@@ -67,10 +67,14 @@ microphone as raw PCM16 16 kHz mono and plays answers at 24 kHz mono:
   ffmpeg -f avfoundation -i ":0" -f s16le -ar 16000 -ac 1 pipe:1
   ffplay -nodisp -autoexit -f s16le -ar 24000 -ac 1 -i pipe:0
 
+The realtime model is pinned per billing channel and drives the voice agent:
+  stepaudio-3-realtime-preview   open-platform (api) channel
+  stepaudio-2.5-realtime         Step Plan subscription channel
+
 Examples:
   dsh --profile voice                          bridge on stdin/stdout
   dsh --profile voice --voice tongtong         pick the speaking voice
-  dsh --profile voice --step-plan              Step Plan channel endpoints
+  dsh --profile voice --step-plan              Step Plan endpoints (and its model)
   dsh --profile voice --realtime-model stepaudio-2.5-realtime
   dsh --profile voice --session-id session-…   resume an existing Session
 `)

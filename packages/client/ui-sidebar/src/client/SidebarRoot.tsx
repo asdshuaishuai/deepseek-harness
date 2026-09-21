@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  FishLogo, IconNewChatOutline16, IconPanelLeftOutline16, isDarwinDesktop, Tooltip,
+  IconNewChatOutline16, IconPanelLeftOutline16, isDarwinDesktop, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -165,9 +165,9 @@ export function SidebarRoot({
   const buildVersion = localBuildVersion()
 
   const darwinDesktop = isDarwinDesktop()
-  // Rail resting state is the whale mark; hovering swaps in the panel icon
-  // (the expand affordance, figma sidebar-hover flow). Expanded it is a plain
-  // panel icon.
+  // The rail's resting state is the panel icon (a brand mark slot occupant may
+  // still fill the row); hovering swaps nothing, since the icon is already the
+  // expand affordance. Expanded it is the same plain panel icon.
   const toggle = (
     <Tooltip label={collapsed ? t('toggle.open') : t('toggle.collapse')} delayMs={500}>
       <button
@@ -176,11 +176,7 @@ export function SidebarRoot({
         aria-label={collapsed ? t('toggle.open') : t('toggle.collapse')}
         onClick={() => { toggleSidebar() }}
       >
-        {!wide && !windowsTitlebar && (
-          <span className={css.railMark} aria-hidden="true">
-            {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: <FishLogo size={24} /> })}
-          </span>
-        )}
+        {!wide && !windowsTitlebar && renderSlot('sidebar.brand.mark', { size: 18 }, { fallback: null })}
         {/* Rail icons render at 18 (figma rail spec); expanded keeps the glyph-native sizes. */}
         <IconPanelLeftOutline16 className={css.panelIcon} size={wide || windowsTitlebar ? 16 : 18} />
         {!wide && renderSlot('sidebar.toggle.badge', {})}
@@ -216,9 +212,7 @@ export function SidebarRoot({
             onClick={() => { startSession() }}
           >
             <span className={css.brandIdentity} aria-hidden="true">
-              <span className={css.brandMark}>
-                {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: <FishLogo size={24} /> })}
-              </span>
+              {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: null })}
               <span className={css.brandName}>
                 {renderSlot('sidebar.brand.name', {}, {
                   fallback: buildVersion === undefined
