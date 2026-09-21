@@ -9,14 +9,14 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import * as voiceStartup from '../src/startup.ts'
-import { VOICE_STARTUP_SERVICE, type VoiceStartupValues } from '../src/startup.ts'
+import type { VoiceStartupValues } from '../src/startup.ts'
 
 async function parseStartup(args: readonly string[]): Promise<VoiceStartupValues | undefined> {
   const ctx = new Context()
   let exitCode: number | undefined
   provideCmdline(ctx, { args, exit: (code) => { exitCode = code } })
   await ctx.plugin(voiceStartup)
-  const values = ctx.get(VOICE_STARTUP_SERVICE) as VoiceStartupValues | undefined
+  const values = ctx.voiceStartup
   await ctx.fiber.dispose()
   return exitCode === 0 || exitCode === undefined ? values : undefined
 }

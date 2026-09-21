@@ -39,6 +39,21 @@ export interface ImageSerializationOptions {
 
 const TOOL_RESULT_IMAGE_TEXT = 'Attached image(s) from tool result:'
 
+/** Wire content for an empty tool result: OpenAI-compatible endpoints reject empty strings. */
+const EMPTY_TOOL_OUTPUT = '(no output)'
+
+/** Resolve the prepared request version for one retained image occurrence. */
+function preparedImageVersion(
+  images: ImageSerializationOptions,
+  attachmentId: ImageAttachmentRef['attachmentId'],
+): RequestImageAttachment {
+  const version = images.requestImages.get(attachmentId)
+  if (version === undefined) {
+    throw new LlmError(`StepFun request image ${attachmentId} was not prepared.`, 'INVALID_REQUEST')
+  }
+  return version
+}
+
 /** Join the text blocks of a message (used for user/tool-result content). */
 function flattenText(blocks: ContentBlock[]): string {
   return blocks
@@ -85,13 +100,7 @@ function imageParts(
   images: ImageSerializationOptions,
   precededByContent: boolean,
 ): [WireTextContentPart, WireImageUrlContentPart] {
-  const version = images.requestImages.get(block.attachment.attachmentId)
-  if (version === undefined) {
-    throw new LlmError(
-      `StepFun request image ${block.attachment.attachmentId} was not prepared.`,
-      'INVALID_REQUEST',
-    )
-  }
+  const version = preparedImageVersion(images, block.attachment.attachmentId)
   const image: WireImageUrlContentPart = {
     type: 'image_url',
     image_url: { url: `data:${version.mediaType};base64,${Buffer.from(version.data).toString('base64')}` },
@@ -193,8 +202,7 @@ export function serializeMessages(messages: Message[]): WireMessage[] {
       wire.push({
         role: 'tool',
         tool_call_id: result.toolCallId,
-        // Empty tool output still needs SOME content on the wire.
-        content: flattenText(result.content) || '(no output)',
+        content: flattenText(result.content) || EMPTY_TOOL_OUTPUT,
       })
     }
   }
@@ -254,7 +262,7 @@ export function serializeMessagesWithImages(
       wire.push({
         role: 'tool',
         tool_call_id: result.toolCallId,
-        content: text || '(no output)',
+        content: text || EMPTY_TOOL_OUTPUT,
       })
       pendingToolImages.push(...imageParts)
     }
@@ -319,13 +327,7 @@ function assertRetainedImagesFit(messages: readonly Message[], images: ImageSeri
     ...images.maxImagesPerRequest === undefined ? {} : { maxImages: images.maxImagesPerRequest },
     ...images.byteQuantum === undefined ? {} : { byteQuantum: images.byteQuantum },
     ...images.countQuantum === undefined ? {} : { countQuantum: images.countQuantum },
-  }, (block) => {
-    const version = images.requestImages.get(block.attachment.attachmentId)
-    if (version === undefined) {
-      throw new LlmError(`StepFun request image ${block.attachment.attachmentId} was not prepared.`, 'INVALID_REQUEST')
-    }
-    return version.bytes
-  })
+  }, (block) => preparedImageVersion(images, block.attachment.attachmentId).bytes)
   if (offloadImages > 0) {
     throw new LlmError(
       `StepFun base64 request images exceed the route budget; ${offloadImages} more oldest occurrence(s) must be offloaded.`,

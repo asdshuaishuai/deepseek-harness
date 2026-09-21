@@ -28,10 +28,8 @@ describe('dsh-sdk-minimal bundle', () => {
     expect(rows.map(row => [row.id, row.name])).toEqual([
       ['sdk-app-startup', '@deepseek-ai/dsh-sdk-app'],
       ['sdk-jsonrpc-server', '@deepseek-ai/dsh-sdk-jsonrpc-server'],
-      ['deepseek-llm-api-extensions', '@deepseek-ai/dsh-deepseek-llm-api-extensions'],
-      ['session-log-deepseek', '@deepseek-ai/dsh-session-log-deepseek'],
-      ['plugin-package-inventory-deepseek', '@deepseek-ai/dsh-plugin-package-inventory-deepseek'],
-      ['llm-deepseek', '@deepseek-ai/dsh-llm-deepseek'],
+      ['llm-stepfun', '@deepseek-ai/dsh-llm-stepfun'],
+      ['stepfun-search-mcp', '@deepseek-ai/dsh-mcp-stepfun-search'],
       ['sandbox', '@deepseek-ai/dsh-sandbox-local'],
       ['session-projection', '@deepseek-ai/dsh-session-projection'],
       ['sandbox-policy', '@deepseek-ai/dsh-sandbox-policy'],
@@ -64,8 +62,16 @@ describe('dsh-sdk-minimal bundle', () => {
       inject: ['sdkAppStartup', 'loader'],
       config: { maxTokensAsSuccess: false },
     })
-    expect(rows.find(row => row.id === 'llm-deepseek')?.config).toEqual({
-      apiKeyEnv: 'DEEPSEEK_API_KEY',
+    // This fork is StepFun-only: the DeepSeek provider rows stay hidden
+    // (unmounted, not deleted) and the StepFun adapter takes the seat.
+    expect(rows.filter(row => [
+      'llm-deepseek',
+      'deepseek-llm-api-extensions',
+      'session-log-deepseek',
+      'plugin-package-inventory-deepseek',
+    ].includes(row.id ?? ''))).toHaveLength(0)
+    expect(rows.find(row => row.id === 'llm-stepfun')?.config).toEqual({
+      apiKeyEnv: 'STEPFUN_API_KEY',
       defaultContextWindow: { __jsExpr: 'Number(process.env.DSH_CONTEXT_WINDOW ?? 1000000)' },
       streamIdleTimeoutMs: 172800000,
     })

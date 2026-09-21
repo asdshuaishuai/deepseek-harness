@@ -103,3 +103,10 @@ export function apply(ctx: Context): void {
   })
   parseCmdline(ctx, program)
 }
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** This voice process's parsed run options; provided before the tree rows resolve their lazy config. */
+    voiceStartup?: VoiceStartupValues
+  }
+}

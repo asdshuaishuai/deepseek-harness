@@ -25,7 +25,7 @@ export const inject = ['voiceAgent', 'voiceStartup']
  * @param ctx - plugin context carrying the conversation service and run options.
  */
 export function apply(ctx: Context): void {
-  const startup = ctx.get('voiceStartup') as VoiceStartupValues | undefined
+  const startup = ctx.voiceStartup
   const exit = ctx.get('appExit')
   if (exit === undefined) {
     throw new Error('voice-runner: the launcher must provide ctx.appExit before the tree mounts')

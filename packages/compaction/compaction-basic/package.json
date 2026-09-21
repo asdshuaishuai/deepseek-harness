@@ -18,6 +18,14 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./config": {
+      "types": "./lib/types/config.d.ts",
+      "default": "./lib/config.js"
+    },
+    "./summarizer": {
+      "types": "./lib/types/summarizer.d.ts",
+      "default": "./lib/summarizer.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },

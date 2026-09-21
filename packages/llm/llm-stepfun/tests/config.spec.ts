@@ -87,15 +87,17 @@ describe('resolveAdapterOptions', () => {
     })).toThrow(/cannot declare image request limits/)
   })
 
-  it('validates cataloged reasoning efforts: empty folds to absence, empty ids and duplicates reject', () => {
-    const empty = resolveAdapterOptions({ models: [{ id: 'm', reasoningEfforts: [] }] })
-    expect(empty.models[0]?.reasoningEfforts).toBeUndefined()
+  it('validates cataloged reasoning efforts: empty ids and duplicates reject', () => {
     expect(() => resolveAdapterOptions({
       models: [{ id: 'm', reasoningEfforts: ['low', ''] }],
     })).toThrow(/must not contain empty ids/)
     expect(() => resolveAdapterOptions({
       models: [{ id: 'm', reasoningEfforts: ['low', 'low'] }],
     })).toThrow(/must not contain duplicates/)
+    // Schemastery normalizes an absent array to []; resolution reads that as
+    // "no selectable efforts", not a catalog error.
+    const resolved = resolveAdapterOptions({ models: [{ id: 'm', reasoningEfforts: [] }] })
+    expect(resolved.models[0]?.reasoningEfforts).toBeUndefined()
   })
 
   it('keeps the documented efforts: flagship and 3.7 low/medium/high, 2603 low/high', () => {

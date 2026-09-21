@@ -14,21 +14,20 @@
       config:
         maxTokensAsSuccess: false
 
-    - id: deepseek-llm-api-extensions
-      name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'
-
-    - id: session-log-deepseek
-      name: '@deepseek-ai/dsh-session-log-deepseek'
-
-    - id: plugin-package-inventory-deepseek
-      name: '@deepseek-ai/dsh-plugin-package-inventory-deepseek'
-
-    - id: llm-deepseek
-      name: '@deepseek-ai/dsh-llm-deepseek'
+    # This fork is StepFun-only: the DeepSeek rows (llm-deepseek, its API
+    # extensions, session log upload, and the package-inventory extension)
+    # stay unmounted — hidden, not deleted — and the StepFun adapter takes the
+    # provider seat. The StepSearch MCP mount resolves its own key at load and
+    # stays unmounted without one, so the minimal tree stays key-optional.
+    - id: llm-stepfun
+      name: '@deepseek-ai/dsh-llm-stepfun'
       config:
-        apiKeyEnv: DEEPSEEK_API_KEY
+        apiKeyEnv: STEPFUN_API_KEY
         defaultContextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 1000000)
         streamIdleTimeoutMs: 172800000
+
+    - id: stepfun-search-mcp
+      name: '@deepseek-ai/dsh-mcp-stepfun-search'
 
     - id: sandbox
       name: '@deepseek-ai/dsh-sandbox-local'

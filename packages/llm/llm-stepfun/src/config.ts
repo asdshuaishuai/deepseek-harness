@@ -12,12 +12,12 @@ import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_IMAGE_OFFLOAD_BYTE_QUANTUM,
   DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM,
+  DEFAULT_MAX_IMAGES_PER_REQUEST,
   DEFAULT_MAX_REQUEST_IMAGE_BYTES,
   DEFAULT_MAX_TOKENS,
   DEFAULT_REQUEST_IMAGE_MAX_BYTES,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   STEP_PLAN_BASE_URL,
-  DEFAULT_MAX_IMAGES_PER_REQUEST,
 } from './common/defaults.ts'
 
 const DEFAULT_API_KEY_ENV = 'STEPFUN_API_KEY'
@@ -89,7 +89,10 @@ export const Config: z<Config> = z.object({
   baseURL: z.string(),
   maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_MAX_TOKENS),
   defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
-  models: z.array(catalogModel).default(DEFAULT_MODELS),
+  // No schema default on purpose: the settings layer materializes schema
+  // defaults into every snapshot, which would freeze the standard catalog over
+  // the channel's own. Resolution defaults by channel instead.
+  models: z.array(catalogModel),
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_STREAM_IDLE_TIMEOUT_MS),
   maxRequestImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_REQUEST_IMAGE_BYTES),
   maxImagesPerRequest: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGES_PER_REQUEST),
@@ -170,13 +173,18 @@ export function resolveAdapterOptions(
     ?? environment?.get(BASE_URL_ENV)?.value
     ?? (channel === 'step-plan' ? STEP_PLAN_BASE_URL : PUBLIC_BASE_URL)
   assertPublicHttpUrl(baseURL, 'llm-stepfun: baseURL')
+  // Schemastery materializes an absent array as []; empty reads as "operator
+  // did not choose", so the channel's own catalog applies.
+  const configuredModels = config.models !== undefined && config.models.length > 0
+    ? config.models
+    : channel === 'step-plan' ? STEP_PLAN_MODELS : DEFAULT_MODELS
   return {
     baseURL,
     channel,
     apiKeyEnv: credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV),
     maxTokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
     defaultContextWindow: config.defaultContextWindow ?? DEFAULT_CONTEXT_WINDOW,
-    models: resolveModels(config.models ?? (channel === 'step-plan' ? STEP_PLAN_MODELS : DEFAULT_MODELS)),
+    models: resolveModels(configuredModels),
     streamIdleTimeoutMs,
     maxRequestImageBytes,
     maxImagesPerRequest,

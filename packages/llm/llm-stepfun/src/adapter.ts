@@ -40,6 +40,7 @@ import type {
 } from '@deepseek-ai/dsh-attachment'
 import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import { catalogModelInfo, modelInfo } from './common/model-info.ts'
+import { DEFAULT_REQUEST_IMAGE_MAX_BYTES } from './common/defaults.ts'
 import type { StepFunAdapterOptions, StepFunCatalogModel, StepFunConnectionOptions } from './common/types.ts'
 import { parseSse } from './protocol/sse.ts'
 import { serializeRequest, serializeRequestWithImages } from './protocol/serialize.ts'
@@ -78,11 +79,12 @@ async function prepareRequestImages(
   const orderedRefs = [...refs.values()]
   // One fixed deterministic target: the encoder never upscales past the
   // source, so generous dimensions keep detail while maxBytes bounds the
-  // encoded ladder output actually sent.
+  // encoded ladder output actually sent. The fallback only guards direct
+  // programmatic construction — plugin resolution always fills the field.
   const target = {
     width: 2048,
     height: 2048,
-    maxBytes: model.imageMaxBytes ?? 10 * 1024 * 1024,
+    maxBytes: model.imageMaxBytes ?? DEFAULT_REQUEST_IMAGE_MAX_BYTES,
   }
   const projected = await Promise.all(orderedRefs.map(
     ref => attachments.readImageRequest(ref, target, signal),

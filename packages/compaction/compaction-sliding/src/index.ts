@@ -19,9 +19,9 @@ import z from '@deepseek-ai/schemastery'
 import { LlmError } from '@deepseek-ai/dsh-llm'
 import BasicCompactionEngine from '@deepseek-ai/dsh-compaction-basic'
 import type { BasicCompactionConfig } from '@deepseek-ai/dsh-compaction-basic'
-import { resolveTargetPolicy } from '@deepseek-ai/dsh-compaction-basic/src/config.ts'
-import { summarizeWithLlm } from '@deepseek-ai/dsh-compaction-basic/src/summarizer.ts'
-import type { SummarizationInput, SummaryResult } from '@deepseek-ai/dsh-compaction-basic/src/summarizer.ts'
+import { resolveTargetPolicy } from '@deepseek-ai/dsh-compaction-basic/config'
+import { summarizeWithLlm } from '@deepseek-ai/dsh-compaction-basic/summarizer'
+import type { SummarizationInput, SummaryResult } from '@deepseek-ai/dsh-compaction-basic/summarizer'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 
 /** Default threshold of the routed model's context window (the "70%" trigger). */
