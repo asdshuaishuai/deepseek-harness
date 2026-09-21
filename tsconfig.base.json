@@ -494,6 +494,7 @@
       "@deepseek-ai/dsh-user-approval/invariant": ["./packages/interaction/user-approval/src/invariant.ts"],
       "@deepseek-ai/dsh-user-questions": ["./packages/interaction/user-questions/src"],
       "@deepseek-ai/dsh-voice-agent": ["./packages/voice/voice-agent/src"],
+      "@deepseek-ai/dsh-voice-web-bridge": ["./packages/voice/voice-web-bridge/src"],
       "@deepseek-ai/dsh-voice-app": ["./packages/bundle/voice-app/src"],
       "@deepseek-ai/dsh-web": ["./packages/web/web/src"],
       "@deepseek-ai/dsh-web-app": ["./packages/bundle/web-app/src"],

@@ -56,6 +56,23 @@
     - id: session-log-download
       name: '@deepseek-ai/dsh-session-log-export'
 
+    # Duplex voice host services: the realtime session and the voice agent
+    # live on the HOST (the API key never reaches the browser). The voice
+    # bridge mounts the browser transport; without STEPFUN_API_KEY both
+    # services still mount and the bridge reports the missing credential
+    # per connection instead of failing the composition.
+    - id: stepfun-realtime
+      name: '@deepseek-ai/dsh-stepfun-realtime'
+
+    - id: voice-agent
+      name: '@deepseek-ai/dsh-voice-agent'
+
+    # The browser voice transport: one WebSocket per conversation at /voice,
+    # token-authenticated through the connection trust plane. The realtime
+    # model stays pinned host-side; the browser only learns the resolved id.
+    - id: voice-web-bridge
+      name: '@deepseek-ai/dsh-voice-web-bridge'
+
     # Session-header "Open In..." split button over the host application
     # resolution (macOS/Windows/Linux; a host with no resolved application
     # renders no button). Two halves: the host routes and the browser surface.

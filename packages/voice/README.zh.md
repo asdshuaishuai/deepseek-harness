@@ -28,6 +28,7 @@ kind: "package-group"
 |---|---|
 | [`stepfun-realtime/`](stepfun-realtime/README.zh.md) | realtime WebSocket 客户端（标准与 Step Plan 通道），带类型化事件与可注入传输 |
 | [`voice-agent/`](voice-agent/README.zh.md) | 把一条 realtime 会话绑定到一个持久 Agent 的桥 |
+| [`voice-web-bridge/`](voice-web-bridge/README.zh.md) | 浏览器语音桥：每条对话一条 /voice WebSocket，把麦克风帧绑定到 `ctx.voiceAgent` | 挂载 `/voice` 升级路由 |
 
 -----
 

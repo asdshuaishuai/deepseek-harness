@@ -1973,9 +1973,6 @@ importers:
       '@deepseek-ai/dsh-agent-loop':
         specifier: workspace:^
         version: link:../../core/agent-loop
-      '@deepseek-ai/dsh-deepseek-llm-api-extensions':
-        specifier: workspace:^
-        version: link:../../llm/deepseek-llm-api-extensions
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -1985,18 +1982,18 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
-      '@deepseek-ai/dsh-llm-deepseek':
-        specifier: workspace:^
-        version: link:../../llm/llm-deepseek
       '@deepseek-ai/dsh-llm-retry':
         specifier: workspace:^
         version: link:../../llm/llm-retry
+      '@deepseek-ai/dsh-llm-stepfun':
+        specifier: workspace:^
+        version: link:../../llm/llm-stepfun
       '@deepseek-ai/dsh-mcp-resources':
         specifier: workspace:^
         version: link:../../mcp/mcp-resources
-      '@deepseek-ai/dsh-plugin-package-inventory-deepseek':
+      '@deepseek-ai/dsh-mcp-stepfun-search':
         specifier: workspace:^
-        version: link:../../llm/plugin-package-inventory-deepseek
+        version: link:../../mcp/mcp-stepfun-search
       '@deepseek-ai/dsh-sandbox-local':
         specifier: workspace:^
         version: link:../../sandbox/sandbox-local
@@ -2015,9 +2012,6 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
-      '@deepseek-ai/dsh-session-log-deepseek':
-        specifier: workspace:^
-        version: link:../../session/session-log-deepseek
       '@deepseek-ai/dsh-session-persistence-jsonl':
         specifier: workspace:^
         version: link:../../session/session-persistence-jsonl
@@ -2308,12 +2302,21 @@ importers:
       '@deepseek-ai/dsh-session-turn-outline':
         specifier: workspace:^
         version: link:../../session/session-turn-outline
+      '@deepseek-ai/dsh-stepfun-realtime':
+        specifier: workspace:^
+        version: link:../../voice/stepfun-realtime
       '@deepseek-ai/dsh-subprocess':
         specifier: workspace:^
         version: link:../../subprocess/subprocess
       '@deepseek-ai/dsh-tool-subagent':
         specifier: workspace:^
         version: link:../../subagent/tool-subagent
+      '@deepseek-ai/dsh-voice-agent':
+        specifier: workspace:^
+        version: link:../../voice/voice-agent
+      '@deepseek-ai/dsh-voice-web-bridge':
+        specifier: workspace:^
+        version: link:../../voice/voice-web-bridge
       '@deepseek-ai/dsh-web-frontend':
         specifier: workspace:^
         version: link:../../../apps/web
@@ -12120,6 +12123,55 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+
+  packages/voice/voice-web-bridge:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      ws:
+        specifier: ^8.21.0
+        version: 8.21.0
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@deepseek-ai/dsh-agent-default-model':
+        specifier: workspace:^
+        version: link:../../core/agent-default-model
+      '@deepseek-ai/dsh-client-connection':
+        specifier: workspace:^
+        version: link:../../client/connection
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: workspace:^
+        version: link:../../host/webserver
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@deepseek-ai/dsh-session-projection':
+        specifier: workspace:^
+        version: link:../../session/session-projection
+      '@deepseek-ai/dsh-stepfun-realtime':
+        specifier: workspace:^
+        version: link:../stepfun-realtime
+      '@deepseek-ai/dsh-token-meter':
+        specifier: workspace:^
+        version: link:../../llm/token-meter
+      '@deepseek-ai/dsh-voice-agent':
+        specifier: workspace:^
+        version: link:../voice-agent
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.3
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
 
   packages/web/tool-web:
     dependencies:

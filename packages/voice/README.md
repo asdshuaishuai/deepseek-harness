@@ -28,6 +28,7 @@ The transport client and the conversation bridge compose; the bundle layer mount
 |---|---|
 | [`stepfun-realtime/`](stepfun-realtime/README.md) | The realtime WebSocket client (standard and Step Plan channels) with typed events and an injectable transport |
 | [`voice-agent/`](voice-agent/README.md) | The bridge binding one realtime session to one durable Agent |
+| [`voice-web-bridge/`](voice-web-bridge/README.md) | Browser voice bridge: one `/voice` WebSocket per conversation, binding mic frames to `ctx.voiceAgent` | owns the `/voice` upgrade route |
 
 -----
 

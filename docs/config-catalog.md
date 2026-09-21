@@ -3764,6 +3764,22 @@ export interface Config {
 
 Source: [`packages/voice/voice-agent/src/index.ts:33`](../packages/voice/voice-agent/src/index.ts)
 
+<a id="deepseek-aidsh-voice-web-bridge"></a>
+
+## `@deepseek-ai/dsh-voice-web-bridge`
+
+Requires: `webServer` · `connection` · `voiceAgent` · `stepfunRealtime`
+
+```ts config-catalog
+/** Plugin config. */
+export interface Config {
+  /** Upgrade path to own. Defaults to `/voice`. */
+  path?: string
+}
+```
+
+Source: [`packages/voice/voice-web-bridge/src/index.ts:221`](../packages/voice/voice-web-bridge/src/index.ts)
+
 <a id="deepseek-aidsh-web"></a>
 
 ## `@deepseek-ai/dsh-web`

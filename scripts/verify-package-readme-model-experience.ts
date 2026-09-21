@@ -47,6 +47,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/util/url-guard': { kind: 'none', reason: 'Pure URL validation; the packages that own the validated requests produce all model-visible content.' },
   'packages/voice/stepfun-realtime': { kind: 'indirect', reason: 'The realtime transport pairs with an Agent through dsh-voice-agent, which owns every model-visible request and answer rendering.' },
   'packages/voice/voice-agent': { kind: 'indirect', reason: 'The bridge submits ordinary user messages and speaks ordinary final text; request assembly belongs to the agent loop and adapter.' },
+  'packages/voice/voice-web-bridge': { kind: 'indirect', reason: 'The bridge forwards microphone bytes and conversation events verbatim; the voice agent owns every model-visible request and answer.' },
   'packages/mcp/mcp-stepfun-search': { kind: 'indirect', reason: 'The wrapper mounts dsh-mcp-client; the server-owned tool schemas and results are the model-visible surface.' },
   'packages/bundle/voice-app': { kind: 'indirect', reason: 'The bundle is a patch-list carrier; each inserted row\'s package owns its model-facing behavior.' },
   'packages/api/terminal-controller': { kind: 'none', reason: 'User-owned terminal processes and screen streams never enter model requests or Session events.' },

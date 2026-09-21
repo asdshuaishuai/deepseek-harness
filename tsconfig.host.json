@@ -302,6 +302,7 @@
     { "path": "./packages/llm/llm-stepfun" },
     { "path": "./packages/voice/stepfun-realtime" },
     { "path": "./packages/voice/voice-agent" },
+    { "path": "./packages/voice/voice-web-bridge" },
     { "path": "./packages/mcp/mcp-stepfun-search" },
     { "path": "./packages/shell/bash-local" },
     { "path": "./packages/shell/shell-env" },
