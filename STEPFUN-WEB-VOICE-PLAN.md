@@ -5,6 +5,20 @@ profile already has on the CLI. This is a fork planning document, not upstream
 documentation: it names the exact packages to touch, the wire contract to add,
 the tests each stage owes, and what is explicitly out of scope.
 
+## Status and decision (2026-09-21)
+
+**This document is the implementation plan, to be carried out elsewhere.** The
+browser voice surface is deliberately not built in this branch: the plan is
+written here as the handoff, self-contained on purpose — exact packages, wire
+contract, per-stage test obligations, and risks — so another session, task, or
+team can implement it without re-deriving the design. Until that happens the
+CLI `voice` profile remains this branch's voice surface, and it already drives
+the pinned realtime models end to end.
+
+The stages are ordered to land bottom-up (Stage 1 composition → Stage 2
+transport → Stage 3 audio → Stage 4 panel), each one green before the next
+begins.
+
 ## Goal
 
 `dsh web` gets a Voice panel: press the microphone button, speak, hear the
