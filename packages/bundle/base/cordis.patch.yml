@@ -295,8 +295,12 @@
     - id: token-meter
       name: '@deepseek-ai/dsh-token-meter'
 
-    - id: compaction-basic
-      name: '@deepseek-ai/dsh-compaction-basic'
+    # The sliding-window compaction preset: background compactor model
+    # (step-3.7-flash on the StepFun Step Plan channel) condenses history at
+    # 70% context pressure without the main model, falling back to the main
+    # model when the compactor cannot serve.
+    - id: compaction-sliding
+      name: '@deepseek-ai/dsh-compaction-sliding'
 
     # Human `/compact`: one useful reduction below the automatic threshold. Backend
     # independent, so it follows whichever compaction service this leaf mounts.

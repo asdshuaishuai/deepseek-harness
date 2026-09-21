@@ -661,9 +661,9 @@ const SERVICE_ROLES: ServiceRole[] = [
     pkg: 'compaction',
     title: 'Compaction seam',
     mode: 'seam',
-    implementations: ['compaction-basic'],
-    consumers: ['compaction-basic'],
-    note: 'The basic backend consumes post-step pressure and request-error recovery events; there is no model-facing compact tool.',
+    implementations: ['compaction-basic', 'compaction-sliding'],
+    consumers: ['compaction-basic', 'compaction-sliding'],
+    note: 'The basic backend consumes post-step pressure and request-error recovery events; there is no model-facing compact tool. The sliding preset extends the basic engine with a background compactor model.',
   },
   {
     key: 'subagents',

@@ -515,6 +515,29 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 
 Source: [`packages/compaction/compaction-basic/src/types.ts:38`](../packages/compaction/compaction-basic/src/types.ts)
 
+<a id="deepseek-aidsh-compaction-sliding"></a>
+
+## `@deepseek-ai/dsh-compaction-sliding`
+
+```ts config-catalog
+/** The basic backend's config, plus the fields this preset owns. */
+export interface SlidingCompactionConfig extends BasicCompactionConfig {
+  /** Provider route of the background compactor. Defaults to `stepfun-official`. */
+  compactorProvider?: string
+  /** Background compactor model. Defaults to `step-3.7-flash` (Step Plan channel). */
+  compactorModel?: string
+  /**
+   * Fall back to the conversation's main model when the compactor cannot
+   * serve. Defaults to true; `false` surfaces the compactor error instead.
+   */
+  compactorFallbackToMain?: boolean
+}
+```
+
+Depends on: [`BasicCompactionConfig`](#deepseek-aidsh-compaction-basic)
+
+Source: [`packages/compaction/compaction-sliding/src/index.ts:35`](../packages/compaction/compaction-sliding/src/index.ts)
+
 <a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
 
 ## `@deepseek-ai/dsh-compaction-tool-result-pruner`
