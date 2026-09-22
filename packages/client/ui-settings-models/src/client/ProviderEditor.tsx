@@ -342,6 +342,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     // per-route identity for its schema to carry, hence the family test.
     const ownsIdentity = family === 'pi-ai' && props.declared === true
     const customModels = schema.getPath(draft, ['models'])
+    // The StepFun card's only routing control: the billing channel picks one
+    // of the two built-in platform endpoints, so no free-text endpoint field
+    // belongs on the card.
+    const channelValue = stringAt(draft, 'channel') ?? stringAt(fallback, 'channel') ?? 'standard'
     // An empty stored array only means "pinned to nothing" when the field has
     // a declared default to fall back to (the DeepSeek family's shipped
     // catalog): there, clearing is a real choice and inheritance is visible in
@@ -362,10 +366,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
         ? t('keyStored')
         : family === 'pi-ai' ? t('keyPlaceholderNative') : t('keyPlaceholder')
     // The endpoint constraint each curated family validates, or none: the
-    // placeholder text sits under the field it describes.
-    const endpointHint = family === 'deepseek'
-      ? t('deepSeekEndpointHint')
-      : family === 'stepfun' ? t('stepfunEndpointHint') : undefined    /** What both family editors take: the rows, whose layer owns them, and the two writes. */
+    // placeholder text sits under the field it describes. The StepFun card
+    // shows its two built-in endpoints instead of a field, so it has no hint
+    // here.
+    const endpointHint = family === 'deepseek' ? t('deepSeekEndpointHint') : undefined
+    /** What both family editors take: the rows, whose layer owns them, and the two writes. */
     const catalogProps = {
       models,
       overridden: modelsOverridden,
@@ -432,47 +437,70 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                 absence, like every other cleared optional field. */}
             {family === 'stepfun'
               ? (
-                <div className={styles['field']}>
-                  <span className={styles['fieldLabel']}>{t('stepfunChannel')}</span>
-                  <select
-                    className={styles['selectInput']}
-                    value={stringAt(draft, 'channel') ?? stringAt(fallback, 'channel') ?? 'standard'}
-                    aria-label={t('stepfunChannel')}
-                    aria-describedby={`${props.provider}-channel-hint`}
-                    disabled={disabled}
-                    onChange={(event) => {
-                      setField('channel', event.target.value === 'standard' ? undefined : event.target.value)
-                    }}
-                  >
-                    <option value="standard">{t('stepfunChannelStandard')}</option>
-                    <option value="step-plan">{t('stepfunChannelPlan')}</option>
-                  </select>
-                  <span id={`${props.provider}-channel-hint`} className={styles['advancedHint']}>
-                    {t('stepfunChannelHint')}
-                  </span>
-                </div>
+                <>
+                  <div className={styles['field']}>
+                    <span className={styles['fieldLabel']}>{t('stepfunChannel')}</span>
+                    <select
+                      className={styles['selectInput']}
+                      value={channelValue}
+                      aria-label={t('stepfunChannel')}
+                      aria-describedby={`${props.provider}-channel-hint`}
+                      disabled={disabled}
+                      onChange={(event) => {
+                        setField('channel', event.target.value === 'standard' ? undefined : event.target.value)
+                      }}
+                    >
+                      <option value="standard">{t('stepfunChannelStandard')}</option>
+                      <option value="step-plan">{t('stepfunChannelPlan')}</option>
+                    </select>
+                    <span id={`${props.provider}-channel-hint`} className={styles['advancedHint']}>
+                      {t('stepfunChannelHint')}
+                    </span>
+                  </div>
+                  {/* The two built-in endpoints, in the platform's standard
+                      format, both always visible: the selected channel's URL
+                      leads, the other stays a read-only alternative — a
+                      private gateway is a settings.yaml concern, not a card
+                      field. */}
+                  <div className={styles['field']}>
+                    <span className={styles['fieldLabel']}>{t('stepfunEndpoints')}</span>
+                    <span className={styles['endpointActive']}>
+                      <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlPlan') : t('stepfunBaseUrlStandard')}</code>
+                      {` · ${channelValue === 'step-plan' ? t('stepfunChannelPlan') : t('stepfunChannelStandard')}`}
+                    </span>
+                    <span className={styles['advancedHint']}>
+                      <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlStandard') : t('stepfunBaseUrlPlan')}</code>
+                      {` — ${channelValue === 'step-plan' ? t('stepfunChannelStandard') : t('stepfunChannelPlan')}`}
+                    </span>
+                    <span className={styles['advancedHint']}>{t('stepfunEndpointsHint')}</span>
+                  </div>
+                </>
               )
               : null}
-            <div className={styles['field']}>
-              <span className={styles['fieldLabel']}>{t('baseUrl')}</span>
-              <input
-                className={styles['input']}
-                type="text"
-                value={stringAt(draft, 'baseURL') ?? ''}
-                placeholder={family === 'deepseek'
-                  ? t(stringAt(fallback, 'protocol') === 'messages' ? 'deepSeekMessagesBaseUrl' : 'deepSeekChatBaseUrl')
-                  : stringAt(fallback, 'baseURL') ?? t('baseUrlDefault')}
-                aria-describedby={endpointHint === undefined ? undefined : `${props.provider}-endpoint-hint`}
-                aria-label={t('baseUrl')}
-                disabled={disabled}
-                onChange={(event) => {
-                  setField('baseURL', event.target.value === '' ? undefined : event.target.value)
-                }}
-              />
-              {endpointHint === undefined
-                ? null
-                : <span id={`${props.provider}-endpoint-hint`} className={styles['advancedHint']}>{endpointHint}</span>}
-            </div>
+            {family === 'stepfun'
+              ? null
+              : (
+                <div className={styles['field']}>
+                  <span className={styles['fieldLabel']}>{t('baseUrl')}</span>
+                  <input
+                    className={styles['input']}
+                    type="text"
+                    value={stringAt(draft, 'baseURL') ?? ''}
+                    placeholder={family === 'deepseek'
+                      ? t(stringAt(fallback, 'protocol') === 'messages' ? 'deepSeekMessagesBaseUrl' : 'deepSeekChatBaseUrl')
+                      : stringAt(fallback, 'baseURL') ?? t('baseUrlDefault')}
+                    aria-describedby={endpointHint === undefined ? undefined : `${props.provider}-endpoint-hint`}
+                    aria-label={t('baseUrl')}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      setField('baseURL', event.target.value === '' ? undefined : event.target.value)
+                    }}
+                  />
+                  {endpointHint === undefined
+                    ? null
+                    : <span id={`${props.provider}-endpoint-hint`} className={styles['advancedHint']}>{endpointHint}</span>}
+                </div>
+              )}
             {/* The protocol sits beside the endpoint it describes, as it does
                 on the create card. */}
             {ownsIdentity

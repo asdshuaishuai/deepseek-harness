@@ -286,6 +286,15 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+/* The selected built-in endpoint of the StepFun card: the platform standard
+   URL, shown read-only beside the channel that selects it. */
+.endpointActive {
+  display: block;
+  font-size: 13px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
 .advancedHint {
   margin: 0;
   font-size: 12px;

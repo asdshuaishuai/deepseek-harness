@@ -753,7 +753,7 @@ describe('ModelsSection', () => {
     ]])
   })
 
-  it('edits the StepFun card with its own endpoint hint and default endpoint placeholder', async () => {
+  it('edits the StepFun card with its two built-in endpoints and no address field', async () => {
     const namespace: SettingsNamespaceView = {
       ...wireNamespaces()[0]!,
       ns: 'llm-stepfun',
@@ -784,10 +784,13 @@ describe('ModelsSection', () => {
       onClose={vi.fn()}
     />)
     fireEvent.click(screen.getByText(en.customized))
-    expect(screen.getByLabelText<HTMLInputElement>(en.baseUrl).placeholder)
-      .toBe('https://api.stepfun.com/v1')
-    expect(screen.queryByLabelText(en.customApi)).toBeNull()
-    expect(screen.getByText(en.stepfunEndpointHint)).toBeTruthy()
+    // No free-text endpoint field: the StepFun card shows its two built-in
+    // platform endpoints instead, in the standard format.
+    expect(screen.queryByLabelText(en.baseUrl)).toBeNull()
+    // The two built-in endpoints, in the platform's standard format: the
+    // selected channel's URL is shown and the other stays read-only.
+    expect(screen.getByText('https://api.stepfun.com/v1')).toBeTruthy()
+    expect(screen.getByText(/step_plan\/v1/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'sk-step-test' } })
     fireEvent.change(screen.getByLabelText(`${en.modelName} 1`), { target: { value: 'Step 5 Preview Renamed' } })
     fireEvent.click(screen.getByText(en.apply))
@@ -838,7 +841,10 @@ describe('ModelsSection', () => {
     const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
     expect(channel.value).toBe('standard')
     expect(screen.getByText(en.stepfunChannelHint)).toBeTruthy()
+    expect(screen.getByText('https://api.stepfun.com/v1')).toBeTruthy()
     fireEvent.change(channel, { target: { value: 'step-plan' } })
+    // The shown endpoint follows the draft channel immediately.
+    expect(screen.getByText('https://api.stepfun.com/step_plan/v1')).toBeTruthy()
     fireEvent.click(screen.getByText(en.apply))
     await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
     expect(mutate.mock.calls[0]).toEqual([
