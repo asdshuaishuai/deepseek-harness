@@ -76,6 +76,8 @@ export interface StepFunConnectionOptions {
 export interface StepFunAdapterOptions {
   /** Current validated connection facts; called once per operation. */
   options: () => StepFunConnectionOptions
+  /** This route's display name for selectors and diagnostics; called per query. */
+  displayName: () => string
   /**
    * Resolve the bearer token for the connection facts of one request. The
    * snapshot is passed in — never re-read — so the key can only ever come

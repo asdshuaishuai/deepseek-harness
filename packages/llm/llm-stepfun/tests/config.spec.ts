@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
-import { resolveAdapterOptions, PUBLIC_BASE_URL, STEP_PLAN_BASE_URL } from '../src/config.ts'
+import {
+  resolveAdapterOptions, resolveRouteIdentity, PUBLIC_BASE_URL, STEP_PLAN_BASE_URL,
+  DEFAULT_PROVIDER, PLAN_PROVIDER, DEFAULT_SETTINGS_NS, PLAN_SETTINGS_NS,
+} from '../src/config.ts'
 import { DEFAULT_MODELS, STEP_PLAN_MODELS } from '../src/common/models.ts'
 
 describe('resolveAdapterOptions', () => {
@@ -123,5 +126,33 @@ describe('resolveAdapterOptions', () => {
       inputModalities: ['text', 'image'],
       reasoningEfforts: ['low', 'medium', 'high'],
     })
+  })
+})
+
+describe('resolveRouteIdentity', () => {
+  it('defaults to the open-platform route and its settings section', () => {
+    expect(resolveRouteIdentity({})).toEqual({
+      provider: DEFAULT_PROVIDER,
+      settingsNs: DEFAULT_SETTINGS_NS,
+      displayName: 'StepFun',
+    })
+    expect(DEFAULT_PROVIDER).toBe('stepfun-official')
+  })
+
+  it('carries an explicit plan route with its own settings section and label', () => {
+    expect(resolveRouteIdentity({
+      provider: PLAN_PROVIDER,
+      settingsNs: PLAN_SETTINGS_NS,
+      displayName: 'StepFun (Step Plan)',
+    })).toEqual({
+      provider: 'stepfun-plan',
+      settingsNs: 'llm-stepfun-plan',
+      displayName: 'StepFun (Step Plan)',
+    })
+  })
+
+  it('rejects a provider id with illegal shape or an empty settings namespace', () => {
+    expect(() => resolveRouteIdentity({ provider: 'has spaces' })).toThrow(/provider must match/)
+    expect(() => resolveRouteIdentity({ settingsNs: '' })).toThrow(/settingsNs must be a non-empty/)
   })
 })

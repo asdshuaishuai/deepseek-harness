@@ -24,6 +24,44 @@ const DEFAULT_API_KEY_ENV = 'STEPFUN_API_KEY'
 
 const MODEL_MODALITIES = ['text', 'image'] as const
 
+/** Provider route id for the open-platform endpoint (the shipped default). */
+export const DEFAULT_PROVIDER = 'stepfun-official'
+
+/** Provider route id for the Step Plan subscription endpoint. */
+export const PLAN_PROVIDER = 'stepfun-plan'
+
+/** Settings namespace for the open-platform route. */
+export const DEFAULT_SETTINGS_NS = 'llm-stepfun'
+
+/** Settings namespace for the Step Plan route. */
+export const PLAN_SETTINGS_NS = 'llm-stepfun-plan'
+
+/** Route identity: a non-empty provider id plus the settings section it owns. */
+const PROVIDER_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
+/**
+ * Resolve the route identity one instance registers: the provider id, the
+ * settings namespace it owns, and the Models-page label.
+ * @param config - raw plugin config or resolved settings snapshot.
+ * @returns validated identity facts.
+ * @throws when an explicit provider id or namespace breaks its shape.
+ */
+export function resolveRouteIdentity(config: Config): {
+  provider: string
+  settingsNs: string
+  displayName: string
+} {
+  const provider = config.provider ?? DEFAULT_PROVIDER
+  if (!PROVIDER_PATTERN.test(provider)) {
+    throw new Error(`llm-stepfun: provider must match ${PROVIDER_PATTERN.toString()} (got "${provider}")`)
+  }
+  const settingsNs = config.settingsNs ?? DEFAULT_SETTINGS_NS
+  if (settingsNs.length === 0) {
+    throw new Error('llm-stepfun: settingsNs must be a non-empty namespace')
+  }
+  return { provider, settingsNs, displayName: config.displayName ?? 'StepFun' }
+}
+
 /**
  * Plugin config, validated by the same-named schemastery schema and doubling
  * as the `llm-stepfun` settings-section shape. Every field is optional in
@@ -40,6 +78,21 @@ export interface Config {
    * channel default.
    */
   channel?: StepFunChannel
+  /**
+   * Provider route id this instance registers. The two StepFun endpoints are
+   * independent routes — the open platform (`stepfun-official`) and the Step
+   * Plan subscription (`stepfun-plan`) each mount their own row, key, and
+   * catalog — so a row names its own route.
+   */
+  provider?: string
+  /**
+   * Settings namespace this instance owns (the `llm-stepfun` /
+   * `llm-stepfun-plan` sections the Models page edits). Each route owns its
+   * own section so the two endpoints configure independently.
+   */
+  settingsNs?: string
+  /** Selector label for the Models page and picker; defaults to `StepFun`. */
+  displayName?: string
   /** Credential reference (environment-variable name) resolved per request; defaults to `STEPFUN_API_KEY`. */
   apiKeyEnv?: string
   /**
@@ -85,6 +138,9 @@ const catalogModel: z<StepFunCatalogModel> = z.object({
 
 export const Config: z<Config> = z.object({
   channel: z.union([z.const('standard'), z.const('step-plan')]).default('standard'),
+  provider: z.string(),
+  settingsNs: z.string(),
+  displayName: z.string(),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   baseURL: z.string(),
   maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_MAX_TOKENS),

@@ -49,6 +49,16 @@ describe('dsh-base bundle', () => {
     expect(rows.filter(row => row.id === 'llm-pi-ai')).toHaveLength(0)
     expect(rows.filter(row => row.id === 'web-search-deepseek')).toHaveLength(0)
     expect(rows.find(row => row.id === 'llm-stepfun')).toBeDefined()
+    // The two StepFun endpoints are independent provider routes: the second
+    // row mounts the subscription route with its own settings section.
+    expect(rows.find(row => row.id === 'llm-stepfun-plan')).toMatchObject({
+      name: '@deepseek-ai/dsh-llm-stepfun',
+      config: {
+        provider: 'stepfun-plan',
+        settingsNs: 'llm-stepfun-plan',
+        channel: 'step-plan',
+      },
+    })
     expect(rows.find(row => row.id === 'agent-default-model')?.config).toMatchObject({
       provider: 'stepfun-official',
       model: 'step-5-preview',

@@ -52,7 +52,7 @@ function voiceCommand(): Command {
     .helpOption('-h, --help', 'show this help')
     .option('--session-id <id>', 'adopt the persisted Session with this id; an unknown id is an error')
     .option('--voice <name>', 'voice the model speaks with')
-    .option('--step-plan', 'run on the Step Plan subscription channel (chat and realtime endpoints)')
+    .option('--step-plan', 'use the independent StepFun (Step Plan) provider route for the agent, and its realtime endpoint')
     .option('--realtime-model <id>', 'realtime model id over the channel default')
     .option('--no-ack', 'do not speak a short acknowledgement when a task is accepted')
     .addHelpText('after', `
@@ -74,7 +74,7 @@ The realtime model is pinned per billing channel and drives the voice agent:
 Examples:
   dsh --profile voice                          bridge on stdin/stdout
   dsh --profile voice --voice tongtong         pick the speaking voice
-  dsh --profile voice --step-plan              Step Plan endpoints (and its model)
+  dsh --profile voice --step-plan              the independent StepFun (Step Plan) route
   dsh --profile voice --realtime-model stepaudio-2.5-realtime
   dsh --profile voice --session-id session-…   resume an existing Session
 `)

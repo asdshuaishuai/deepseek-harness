@@ -129,6 +129,34 @@ describe('llm-stepfun real composition', () => {
     ])
   })
 
+  it('boots the two StepFun routes as independent providers with their own catalogs', async () => {
+    vi.stubEnv('STEPFUN_API_KEY', '')
+    const { ctx } = await loadComposition([
+      '- id: llm',
+      "  name: '@deepseek-ai/dsh-llm'",
+      '- id: llm-stepfun',
+      "  name: '@deepseek-ai/dsh-llm-stepfun'",
+      '- id: llm-stepfun-plan',
+      "  name: '@deepseek-ai/dsh-llm-stepfun'",
+      '  config:',
+      '    provider: stepfun-plan',
+      '    settingsNs: llm-stepfun-plan',
+      '    displayName: StepFun (Step Plan)',
+      '    channel: step-plan',
+    ])
+    // One plugin mounted twice: the open-platform route and the Step Plan
+    // subscription route are separate providers, each with its own catalog.
+    const providers = ctx.llm.listProviders().map(entry => entry.id)
+    expect(providers).toContain('stepfun-official')
+    expect(providers).toContain('stepfun-plan')
+    expect(ctx.llm.listProviders().find(entry => entry.id === 'stepfun-plan')?.name)
+      .toBe('StepFun (Step Plan)')
+    expect((await ctx.llm.listModels('stepfun-official')).map(model => model.id))
+      .toEqual(STANDARD_CATALOG)
+    expect((await ctx.llm.listModels('stepfun-plan')).map(model => model.id))
+      .toEqual(PLAN_CATALOG)
+  })
+
   it('follows an external settings edit into the Step Plan channel, then keeps the last good facts on an invalid snapshot', { timeout: 20_000 }, async () => {
     vi.stubEnv('STEPFUN_API_KEY', '')
     const { ctx, settingsPath } = await loadComposition(DYNAMIC_ROWS)

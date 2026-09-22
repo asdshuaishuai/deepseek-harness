@@ -783,12 +783,13 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={vi.fn()}
     />)
-    // The channel and its two built-in endpoints sit on the card face, not
-    // behind the customized-settings fold: the open-platform URL leads and the
-    // Step Plan one stays a read-only alternative, both in standard format.
-    expect(screen.getByText(en.stepfunChannel)).toBeTruthy()
+    // This card is the open-platform route: its own fixed built-in endpoint
+    // sits on the card face (not behind the customized-settings fold) and the
+    // Step Plan endpoint is named as the sibling independent provider, with no
+    // channel switch merging the two.
+    expect(screen.getByText(en.stepfunEndpoint)).toBeTruthy()
     expect(screen.getByText('https://api.stepfun.com/v1')).toBeTruthy()
-    expect(screen.getByText(/step_plan\/v1/)).toBeTruthy()
+    expect(screen.getByText(en.stepfunEndpointSibling)).toBeTruthy()
     fireEvent.click(screen.getByText(en.customized))
     // And no free-text endpoint field exists behind the fold either.
     expect(screen.queryByLabelText(en.baseUrl)).toBeNull()
@@ -808,14 +809,13 @@ describe('ModelsSection', () => {
     ]])
   })
 
-  it('writes the StepFun billing channel as a set op', async () => {
+  it('shows the StepFun plan card its own built-in endpoint, not a channel switch', async () => {
     const namespace: SettingsNamespaceView = {
       ...wireNamespaces()[0]!,
-      ns: 'llm-stepfun',
+      ns: 'llm-stepfun-plan',
       schema: JSON.parse(JSON.stringify(StepfunConfig.toJSON())) as JsonValue,
       value: {
         apiKeyEnv: 'STEPFUN_API_KEY',
-        baseURL: 'https://api.stepfun.com/v1',
         defaultContextWindow: 1_000_000,
         maxTokens: 65_536,
         models: DEFAULT_STEPFUN_MODELS,
@@ -823,13 +823,13 @@ describe('ModelsSection', () => {
       base: { defaultContextWindow: 1_000_000, maxTokens: 65_536, models: DEFAULT_STEPFUN_MODELS },
       user: {},
     }
-    const { face, mutate } = scriptedFace({
+    const { face, mutate, set } = scriptedFace({
       mutate: vi.fn(() => Promise.resolve(remoteOk(namespace))),
     })
     const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
     render(<ProviderEditor
-      provider="stepfun-official"
-      displayName="StepFun"
+      provider="stepfun-plan"
+      displayName="StepFun (Step Plan)"
       namespace={namespace}
       schema={settingsSchema}
       settingsPath={[]}
@@ -838,62 +838,26 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={vi.fn()}
     />)
-    const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
-    expect(channel.value).toBe('standard')
-    expect(screen.getByText(en.stepfunChannelHint)).toBeTruthy()
-    expect(screen.getByText('https://api.stepfun.com/v1')).toBeTruthy()
-    fireEvent.change(channel, { target: { value: 'step-plan' } })
-    // The shown endpoint follows the draft channel immediately.
+    // The two StepFun endpoints are independent providers: this card shows
+    // its own fixed endpoint and names the sibling, with no channel select.
+    expect(screen.getByText(en.stepfunEndpoint)).toBeTruthy()
     expect(screen.getByText('https://api.stepfun.com/step_plan/v1')).toBeTruthy()
+    expect(screen.getByText(en.stepfunEndpointSibling)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'sk-plan-test' } })
+    fireEvent.click(screen.getByText(en.customized))
+    fireEvent.change(screen.getByLabelText(`${en.modelName} 1`), { target: { value: 'Step 5 Preview Renamed' } })
     fireEvent.click(screen.getByText(en.apply))
-    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
-    expect(mutate.mock.calls[0]).toEqual([
-      'llm-stepfun',
-      [{ op: 'set', path: ['channel'], value: 'step-plan' }],
+    await waitFor(() => { expect(set).toHaveBeenCalledWith('STEPFUN_API_KEY', 'sk-plan-test') })
+    expect(mutate.mock.calls).toEqual([[
+      'llm-stepfun-plan',
+      [
+        { op: 'set', path: ['models'], value: [
+          { ...DEFAULT_STEPFUN_MODELS[0], name: 'Step 5 Preview Renamed' },
+          DEFAULT_STEPFUN_MODELS[1],
+        ] },
+      ],
       0,
-    ])
-  })
-
-  it('clears the StepFun channel override when switching back to the standard channel', async () => {
-    const namespace: SettingsNamespaceView = {
-      ...wireNamespaces()[0]!,
-      ns: 'llm-stepfun',
-      schema: JSON.parse(JSON.stringify(StepfunConfig.toJSON())) as JsonValue,
-      value: {
-        channel: 'step-plan',
-        apiKeyEnv: 'STEPFUN_API_KEY',
-        defaultContextWindow: 1_000_000,
-        maxTokens: 65_536,
-        models: DEFAULT_STEPFUN_MODELS,
-      },
-      base: { defaultContextWindow: 1_000_000, maxTokens: 65_536, models: DEFAULT_STEPFUN_MODELS },
-      user: { channel: 'step-plan' },
-    }
-    const { face, mutate } = scriptedFace({
-      mutate: vi.fn(() => Promise.resolve(remoteOk(namespace))),
-    })
-    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
-    render(<ProviderEditor
-      provider="stepfun-official"
-      displayName="StepFun"
-      namespace={namespace}
-      schema={settingsSchema}
-      settingsPath={[]}
-      operations={operationsWith(face)}
-      t={t}
-      readOnly={false}
-      onClose={vi.fn()}
-    />)
-    const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
-    expect(channel.value).toBe('step-plan')
-    fireEvent.change(channel, { target: { value: 'standard' } })
-    fireEvent.click(screen.getByText(en.apply))
-    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
-    expect(mutate.mock.calls[0]).toEqual([
-      'llm-stepfun',
-      [{ op: 'unset', path: ['channel'] }],
-      0,
-    ])
+    ]])
   })
 
   it('rejects duplicate DeepSeek model ids before writing', async () => {

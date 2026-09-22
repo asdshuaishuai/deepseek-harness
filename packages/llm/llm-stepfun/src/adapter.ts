@@ -142,7 +142,9 @@ export class StepFunAdapter extends LlmAdapter {
   }
 
   override providerInfo(provider: string): LlmProviderInfo {
-    return { id: provider, name: 'StepFun' }
+    // Each route carries its own label: the open-platform route and the Step
+    // Plan route are separate providers in selectors and diagnostics.
+    return { id: provider, name: this.config.displayName() }
   }
 
   override providerRetryPolicy(_provider: string): ResolvedRetryPolicy {

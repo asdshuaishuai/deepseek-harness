@@ -57,7 +57,7 @@ export function VoiceDock(props: VoiceDockProps): ReactNode {
         <div className={css.strip}>
           <span className={css.phase}>{t(PHASE_KEYS[view.phase])}</span>
           {view.realtimeModel !== undefined && (
-            <span className={css.model}>{view.realtimeModel}</span>
+            <span className={css.model}>{`${t('model.pinned')}: ${view.realtimeModel}`}</span>
           )}
           <span className={css.caption}>
             {view.assistantText !== '' ? view.assistantText

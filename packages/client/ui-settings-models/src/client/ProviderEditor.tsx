@@ -131,7 +131,9 @@ export function pathOps(
 /** The editor layout the owning namespace selects. */
 function layoutOf(ns: string): EditorLayout {
   if (ns === 'llm-deepseek') return 'deepseek'
-  if (ns === 'llm-stepfun') return 'stepfun'
+  // The two StepFun endpoints are independent providers, each with its own
+  // settings section: `llm-stepfun` (open platform) and `llm-stepfun-plan`.
+  if (ns === 'llm-stepfun' || ns === 'llm-stepfun-plan') return 'stepfun'
   if (ns === 'llm-pi-ai') return 'pi-ai'
   return 'unknown'
 }
@@ -342,10 +344,6 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     // per-route identity for its schema to carry, hence the family test.
     const ownsIdentity = family === 'pi-ai' && props.declared === true
     const customModels = schema.getPath(draft, ['models'])
-    // The StepFun card's only routing control: the billing channel picks one
-    // of the two built-in platform endpoints, so no free-text endpoint field
-    // belongs on the card.
-    const channelValue = stringAt(draft, 'channel') ?? stringAt(fallback, 'channel') ?? 'standard'
     // An empty stored array only means "pinned to nothing" when the field has
     // a declared default to fall back to (the DeepSeek family's shipped
     // catalog): there, clearing is a real choice and inheritance is visible in
@@ -406,41 +404,25 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
             customized-settings fold where the key alone would be the whole
             visible card. `standard` is the schema default and travels as
             absence, like every other cleared optional field. */}
+        {/* The two StepFun endpoints are INDEPENDENT providers — this card is
+            one of them (stepfun-official on the open platform, stepfun-plan on
+            the subscription) — so the card shows its own fixed, read-only
+            built-in endpoint and names the sibling route as the place to
+            configure the other one. No channel switch: switching here would
+            merge the two endpoints into one card, which they are not. */}
         {family === 'stepfun'
           ? (
-            <>
-              <div className={styles['field']}>
-                <span className={styles['fieldLabel']}>{t('stepfunChannel')}</span>
-                <select
-                  className={styles['selectInput']}
-                  value={channelValue}
-                  aria-label={t('stepfunChannel')}
-                  aria-describedby={`${props.provider}-channel-hint`}
-                  disabled={disabled}
-                  onChange={(event) => {
-                    setField('channel', event.target.value === 'standard' ? undefined : event.target.value)
-                  }}
-                >
-                  <option value="standard">{t('stepfunChannelStandard')}</option>
-                  <option value="step-plan">{t('stepfunChannelPlan')}</option>
-                </select>
-                <span id={`${props.provider}-channel-hint`} className={styles['advancedHint']}>
-                  {t('stepfunChannelHint')}
-                </span>
-              </div>
-              <div className={styles['field']}>
-                <span className={styles['fieldLabel']}>{t('stepfunEndpoints')}</span>
-                <span className={styles['endpointActive']}>
-                  <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlPlan') : t('stepfunBaseUrlStandard')}</code>
-                  {` · ${channelValue === 'step-plan' ? t('stepfunChannelPlan') : t('stepfunChannelStandard')}`}
-                </span>
-                <span className={styles['advancedHint']}>
-                  <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlStandard') : t('stepfunBaseUrlPlan')}</code>
-                  {` — ${channelValue === 'step-plan' ? t('stepfunChannelStandard') : t('stepfunChannelPlan')}`}
-                </span>
-                <span className={styles['advancedHint']}>{t('stepfunEndpointsHint')}</span>
-              </div>
-            </>
+            <div className={styles['field']}>
+              <span className={styles['fieldLabel']}>{t('stepfunEndpoint')}</span>
+              <span className={styles['endpointActive']}>
+                <code>{props.provider === 'stepfun-plan' ? t('stepfunBaseUrlPlan') : t('stepfunBaseUrlStandard')}</code>
+              </span>
+              <span className={styles['advancedHint']}>
+                {`${t('stepfunEndpointSibling')} `}
+                <code>{props.provider === 'stepfun-plan' ? t('stepfunBaseUrlStandard') : t('stepfunBaseUrlPlan')}</code>
+              </span>
+              <span className={styles['advancedHint']}>{t('stepfunEndpointsHint')}</span>
+            </div>
           )
           : null}
         {props.credentialOnly === true ? null : <details className={styles['customized']}>

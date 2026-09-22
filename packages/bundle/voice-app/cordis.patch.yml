@@ -44,13 +44,15 @@
       inject: [voiceStartup]
 
 # One switch for the whole voice profile: --step-plan moves the agent's chat
-# requests (llm-stepfun below) and the realtime session onto the Step Plan
-# subscription endpoints. A settings `llm-stepfun:` section still overlays
-# this row; without --step-plan the row restates the base default.
-- id: llm-stepfun
+# requests to the independent StepFun (Step Plan) provider route mounted beside
+# the open-platform one, and the realtime session to the plan realtime endpoint
+# (which speaks the plan-pinned realtime model). Without --step-plan the row
+# restates the base default (the open-platform route).
+- id: agent-default-model
   inject: [voiceStartup]
   config:
-    channel: !!js "ctx.voiceStartup?.stepPlan ? 'step-plan' : 'standard'"
+    provider: !!js "ctx.voiceStartup?.stepPlan ? 'stepfun-plan' : 'stepfun-official'"
+    model: step-5-preview
 
 - id: hmr
   disabled: true

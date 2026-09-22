@@ -40,7 +40,7 @@ function jsExpr(value: unknown): string {
 }
 
 describe('dsh-voice-app bundle', () => {
-  it('wires --step-plan to both the realtime row and the llm-stepfun overlay', () => {
+  it('wires --step-plan to both the realtime row and the agent provider route', () => {
     const rows = allRows(patchRows())
     const realtime = rows.find(row => row.id === 'stepfun-realtime')
     if (realtime === undefined) throw new Error('voice patch must mount stepfun-realtime')
@@ -51,11 +51,14 @@ describe('dsh-voice-app bundle', () => {
     expect(evaluate(planOn, jsExpr(realtime.config?.['channel']))).toBe('step-plan')
     expect(evaluate(planOff, jsExpr(realtime.config?.['channel']))).toBe('standard')
 
-    const llm = patchRows().find(row => row.id === 'llm-stepfun')
-    if (llm === undefined) throw new Error('voice patch must overlay the llm-stepfun row')
-    expect(llm.inject).toContain('voiceStartup')
-    expect(evaluate(planOn, jsExpr(llm.config?.['channel']))).toBe('step-plan')
-    expect(evaluate(planOff, jsExpr(llm.config?.['channel']))).toBe('standard')
+    // The agent half switches to the independent StepFun (Step Plan) provider
+    // route that base mounts beside the open-platform one — no shared card,
+    // no channel override.
+    const agent = patchRows().find(row => row.id === 'agent-default-model')
+    if (agent === undefined) throw new Error('voice patch must overlay the agent-default-model row')
+    expect(agent.inject).toContain('voiceStartup')
+    expect(evaluate(planOn, jsExpr(agent.config?.['provider']))).toBe('stepfun-plan')
+    expect(evaluate(planOff, jsExpr(agent.config?.['provider']))).toBe('stepfun-official')
   })
 
   it('passes --realtime-model through as an explicit override', () => {

@@ -486,12 +486,21 @@
     - id: fs-sandbox
       name: '@deepseek-ai/dsh-fs-sandbox'
 
-    # The native StepFun adapter. No key or endpoint is inlined: both resolve
-    # per request from the `llm-stepfun:` settings section over this entry,
-    # with the key coming from the credential store above and the endpoint
-    # validated as a public HTTP(S) root at configuration resolution. Setting
-    # `channel: step-plan` in that section (or a patch layer) moves chat to
-    # the Step Plan subscription endpoint and swaps the advisory catalog to
-    # the flash family and the router.
+    # The two native StepFun endpoints, as two INDEPENDENT providers: each row
+    # registers its own route, settings section, key, and catalog. No key or
+    # endpoint is inlined: both resolve per request from the row's settings
+    # section (`llm-stepfun:` / `llm-stepfun-plan:`), the key coming from the
+    # credential store above and the endpoint validated as a public HTTP(S)
+    # root at configuration resolution. The default agent route stays
+    # stepfun-official (see agent-default-model); a deployment that lives on
+    # the subscription points agent-default-model at stepfun-plan.
     - id: llm-stepfun
       name: '@deepseek-ai/dsh-llm-stepfun'
+
+    - id: llm-stepfun-plan
+      name: '@deepseek-ai/dsh-llm-stepfun'
+      config:
+        provider: stepfun-plan
+        settingsNs: llm-stepfun-plan
+        displayName: StepFun (Step Plan)
+        channel: step-plan

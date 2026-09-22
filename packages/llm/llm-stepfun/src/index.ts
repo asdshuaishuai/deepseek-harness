@@ -6,10 +6,13 @@ import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import type {} from '@deepseek-ai/dsh-settings'
 import { deepEqualJson } from '@deepseek-ai/dsh-util-values'
 import { StepFunAdapter } from './adapter.ts'
-import { Config, resolveAdapterOptions } from './config.ts'
+import { Config, resolveAdapterOptions, resolveRouteIdentity } from './config.ts'
 import type { StepFunConnectionOptions } from './common/types.ts'
 
-export { Config, resolveAdapterOptions, PUBLIC_BASE_URL, STEP_PLAN_BASE_URL } from './config.ts'
+export { Config, resolveAdapterOptions, resolveRouteIdentity, PUBLIC_BASE_URL, STEP_PLAN_BASE_URL } from './config.ts'
+export {
+  DEFAULT_PROVIDER, PLAN_PROVIDER, DEFAULT_SETTINGS_NS, PLAN_SETTINGS_NS,
+} from './config.ts'
 export type { StepFunConnectionOptions, StepFunChannel } from './common/types.ts'
 export { StepFunAdapter } from './adapter.ts'
 export type { StepFunAdapterOptions, StepFunCatalogModel } from './common/types.ts'
@@ -28,10 +31,11 @@ export type * from './protocol/types.ts'
 export const name = 'llm-stepfun'
 export const inject = ['llm']
 
-const NS = 'llm-stepfun'
-const PROVIDER = 'stepfun-official'
-
 export function apply(ctx: Context, config: Config): void {
+  // Each row registers ONE route: the open platform and the Step Plan
+  // subscription are independent providers with their own key, settings
+  // section, and catalog, mounted by composing this plugin twice.
+  const { provider: PROVIDER, settingsNs: NS, displayName } = resolveRouteIdentity(config)
   let current: () => Config = () => config
   let lastRaw: Config | undefined
   let lastGood: StepFunConnectionOptions | undefined
@@ -81,6 +85,7 @@ export function apply(ctx: Context, config: Config): void {
 
   const adapter = new StepFunAdapter({
     options,
+    displayName: () => displayName,
     resolveApiKey,
     resolveAttachments: () => ctx.get('attachments'),
     resolveImageAccess: (attachments, ref) => resolveImageAttachmentAccess(
@@ -90,7 +95,7 @@ export function apply(ctx: Context, config: Config): void {
     ),
   })
   ctx.llm.registerConfigurableProviders([
-    { provider: PROVIDER, displayName: 'StepFun', settingsNs: NS, settingsPath: [] },
+    { provider: PROVIDER, displayName, settingsNs: NS, settingsPath: [] },
   ])
   // Route effects bind to this apply fiber via the stable `ctx` reference,
   // even when a swap runs inside the scoped settings callback below.

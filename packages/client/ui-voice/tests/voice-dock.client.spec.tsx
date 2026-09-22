@@ -64,7 +64,7 @@ describe('VoiceDock', () => {
     })} sessionId="session-1" t={t as never} />)
     expect(screen.getByText(zh['state.speaking'])).toBeTruthy()
     expect(screen.getByText('答案文本')).toBeTruthy()
-    expect(screen.getByText('stepaudio-2.5-realtime')).toBeTruthy()
+    expect(screen.getByText(`${zh['model.pinned']}: stepaudio-2.5-realtime`)).toBeTruthy()
   })
 
   it('shows the user transcript when no answer text exists', () => {

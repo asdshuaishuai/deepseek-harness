@@ -1652,6 +1652,21 @@ export interface Config {
    * channel default.
    */
   channel?: StepFunChannel
+  /**
+   * Provider route id this instance registers. The two StepFun endpoints are
+   * independent routes — the open platform (`stepfun-official`) and the Step
+   * Plan subscription (`stepfun-plan`) each mount their own row, key, and
+   * catalog — so a row names its own route.
+   */
+  provider?: string
+  /**
+   * Settings namespace this instance owns (the `llm-stepfun` /
+   * `llm-stepfun-plan` sections the Models page edits). Each route owns its
+   * own section so the two endpoints configure independently.
+   */
+  settingsNs?: string
+  /** Selector label for the Models page and picker; defaults to `StepFun`. */
+  displayName?: string
   /** Credential reference (environment-variable name) resolved per request; defaults to `STEPFUN_API_KEY`. */
   apiKeyEnv?: string
   /**
@@ -1716,7 +1731,7 @@ export interface StepFunCatalogModel {
 
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/llm/llm-stepfun/src/config.ts:34`](../packages/llm/llm-stepfun/src/config.ts)
+Source: [`packages/llm/llm-stepfun/src/config.ts:72`](../packages/llm/llm-stepfun/src/config.ts)
 
 <a id="deepseek-aidsh-lsp-stdio"></a>
 
@@ -3778,7 +3793,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/voice/voice-web-bridge/src/index.ts:221`](../packages/voice/voice-web-bridge/src/index.ts)
+Source: [`packages/voice/voice-web-bridge/src/index.ts:40`](../packages/voice/voice-web-bridge/src/index.ts)
 
 <a id="deepseek-aidsh-web"></a>
 
@@ -4079,6 +4094,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-tool` ([`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-user-questions` ([`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-voice` ([`packages/client/ui-voice/src/index.ts`](../packages/client/ui-voice/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-workflow-run` ([`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-workspace` ([`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts))
 - `@deepseek-ai/dsh-command-compact` — requires `commands` · `compaction` ([`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts))
