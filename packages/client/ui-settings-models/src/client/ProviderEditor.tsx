@@ -400,6 +400,49 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
           />
           {shownKeyFailure === undefined ? null : <p className={styles['error']}>{t(shownKeyFailure)}</p>}
         </div>
+        {/* The billing channel and its two built-in endpoints are the
+            StepFun family's primary routing choice — one adapter, two
+            endpoints/catalogs — so they live on the card face, not behind the
+            customized-settings fold where the key alone would be the whole
+            visible card. `standard` is the schema default and travels as
+            absence, like every other cleared optional field. */}
+        {family === 'stepfun'
+          ? (
+            <>
+              <div className={styles['field']}>
+                <span className={styles['fieldLabel']}>{t('stepfunChannel')}</span>
+                <select
+                  className={styles['selectInput']}
+                  value={channelValue}
+                  aria-label={t('stepfunChannel')}
+                  aria-describedby={`${props.provider}-channel-hint`}
+                  disabled={disabled}
+                  onChange={(event) => {
+                    setField('channel', event.target.value === 'standard' ? undefined : event.target.value)
+                  }}
+                >
+                  <option value="standard">{t('stepfunChannelStandard')}</option>
+                  <option value="step-plan">{t('stepfunChannelPlan')}</option>
+                </select>
+                <span id={`${props.provider}-channel-hint`} className={styles['advancedHint']}>
+                  {t('stepfunChannelHint')}
+                </span>
+              </div>
+              <div className={styles['field']}>
+                <span className={styles['fieldLabel']}>{t('stepfunEndpoints')}</span>
+                <span className={styles['endpointActive']}>
+                  <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlPlan') : t('stepfunBaseUrlStandard')}</code>
+                  {` · ${channelValue === 'step-plan' ? t('stepfunChannelPlan') : t('stepfunChannelStandard')}`}
+                </span>
+                <span className={styles['advancedHint']}>
+                  <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlStandard') : t('stepfunBaseUrlPlan')}</code>
+                  {` — ${channelValue === 'step-plan' ? t('stepfunChannelStandard') : t('stepfunChannelPlan')}`}
+                </span>
+                <span className={styles['advancedHint']}>{t('stepfunEndpointsHint')}</span>
+              </div>
+            </>
+          )
+          : null}
         {props.credentialOnly === true ? null : <details className={styles['customized']}>
           <summary className={styles['customizedSummary']}>{t('customized')}</summary>
           <div className={styles['customizedBody']}>
@@ -428,53 +471,6 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                     onChange={(event) => { setField('displayName', event.target.value) }}
                   />
                 </div>
-              )
-              : null}
-            {/* The billing channel is the StepFun family's primary routing
-                choice — standard and Step Plan are one adapter and two
-                endpoints/catalogs — so it sits before the endpoint it
-                selects. `standard` is the schema default and travels as
-                absence, like every other cleared optional field. */}
-            {family === 'stepfun'
-              ? (
-                <>
-                  <div className={styles['field']}>
-                    <span className={styles['fieldLabel']}>{t('stepfunChannel')}</span>
-                    <select
-                      className={styles['selectInput']}
-                      value={channelValue}
-                      aria-label={t('stepfunChannel')}
-                      aria-describedby={`${props.provider}-channel-hint`}
-                      disabled={disabled}
-                      onChange={(event) => {
-                        setField('channel', event.target.value === 'standard' ? undefined : event.target.value)
-                      }}
-                    >
-                      <option value="standard">{t('stepfunChannelStandard')}</option>
-                      <option value="step-plan">{t('stepfunChannelPlan')}</option>
-                    </select>
-                    <span id={`${props.provider}-channel-hint`} className={styles['advancedHint']}>
-                      {t('stepfunChannelHint')}
-                    </span>
-                  </div>
-                  {/* The two built-in endpoints, in the platform's standard
-                      format, both always visible: the selected channel's URL
-                      leads, the other stays a read-only alternative — a
-                      private gateway is a settings.yaml concern, not a card
-                      field. */}
-                  <div className={styles['field']}>
-                    <span className={styles['fieldLabel']}>{t('stepfunEndpoints')}</span>
-                    <span className={styles['endpointActive']}>
-                      <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlPlan') : t('stepfunBaseUrlStandard')}</code>
-                      {` · ${channelValue === 'step-plan' ? t('stepfunChannelPlan') : t('stepfunChannelStandard')}`}
-                    </span>
-                    <span className={styles['advancedHint']}>
-                      <code>{channelValue === 'step-plan' ? t('stepfunBaseUrlStandard') : t('stepfunBaseUrlPlan')}</code>
-                      {` — ${channelValue === 'step-plan' ? t('stepfunChannelStandard') : t('stepfunChannelPlan')}`}
-                    </span>
-                    <span className={styles['advancedHint']}>{t('stepfunEndpointsHint')}</span>
-                  </div>
-                </>
               )
               : null}
             {family === 'stepfun'

@@ -783,14 +783,15 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={vi.fn()}
     />)
-    fireEvent.click(screen.getByText(en.customized))
-    // No free-text endpoint field: the StepFun card shows its two built-in
-    // platform endpoints instead, in the standard format.
-    expect(screen.queryByLabelText(en.baseUrl)).toBeNull()
-    // The two built-in endpoints, in the platform's standard format: the
-    // selected channel's URL is shown and the other stays read-only.
+    // The channel and its two built-in endpoints sit on the card face, not
+    // behind the customized-settings fold: the open-platform URL leads and the
+    // Step Plan one stays a read-only alternative, both in standard format.
+    expect(screen.getByText(en.stepfunChannel)).toBeTruthy()
     expect(screen.getByText('https://api.stepfun.com/v1')).toBeTruthy()
     expect(screen.getByText(/step_plan\/v1/)).toBeTruthy()
+    fireEvent.click(screen.getByText(en.customized))
+    // And no free-text endpoint field exists behind the fold either.
+    expect(screen.queryByLabelText(en.baseUrl)).toBeNull()
     fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'sk-step-test' } })
     fireEvent.change(screen.getByLabelText(`${en.modelName} 1`), { target: { value: 'Step 5 Preview Renamed' } })
     fireEvent.click(screen.getByText(en.apply))
@@ -837,7 +838,6 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={vi.fn()}
     />)
-    fireEvent.click(screen.getByText(en.customized))
     const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
     expect(channel.value).toBe('standard')
     expect(screen.getByText(en.stepfunChannelHint)).toBeTruthy()
@@ -884,7 +884,6 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={vi.fn()}
     />)
-    fireEvent.click(screen.getByText(en.customized))
     const channel = screen.getByLabelText<HTMLSelectElement>(en.stepfunChannel)
     expect(channel.value).toBe('step-plan')
     fireEvent.change(channel, { target: { value: 'standard' } })
